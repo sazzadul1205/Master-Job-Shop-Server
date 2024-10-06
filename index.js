@@ -47,6 +47,9 @@ async function run() {
     const UpcomingEventsCollection = client
       .db("Master-Job-Shop")
       .collection("Upcoming-Events");
+    const CoursesCollection = client
+      .db("Master-Job-Shop")
+      .collection("Courses");
 
     //API`s
     // Posted Job API
@@ -116,6 +119,20 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await UpcomingEventsCollection.findOne(query);
+      res.send(result);
+    });
+
+    // Courses API
+    // Get Courses
+    app.get("/Courses", async (req, res) => {
+      const result = await CoursesCollection.find().toArray();
+      res.send(result);
+    });
+    // get Posed Courses by ID
+    app.get("/Courses/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await CoursesCollection.findOne(query);
       res.send(result);
     });
 

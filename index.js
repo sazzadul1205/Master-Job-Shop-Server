@@ -53,6 +53,9 @@ async function run() {
     const MentorshipCollection = client
       .db("Master-Job-Shop")
       .collection("Mentorship");
+    const InternshipCollection = client
+      .db("Master-Job-Shop")
+      .collection("Internship");
 
     //API`s
     // Posted Job API
@@ -153,6 +156,20 @@ async function run() {
       res.send(result);
     });
 
+    // Internship API
+    // Get Internship
+    app.get("/Internship", async (req, res) => {
+      const result = await InternshipCollection.find().toArray();
+      res.send(result);
+    });
+    // get Posed Internship by ID
+    app.get("/Internship/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await InternshipCollection.findOne(query);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -174,3 +191,7 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`Master Job Shop is Running on Port: ${port}`);
 });
+
+
+
+

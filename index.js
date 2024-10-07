@@ -50,6 +50,9 @@ async function run() {
     const CoursesCollection = client
       .db("Master-Job-Shop")
       .collection("Courses");
+    const MentorshipCollection = client
+      .db("Master-Job-Shop")
+      .collection("Mentorship");
 
     //API`s
     // Posted Job API
@@ -133,6 +136,20 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await CoursesCollection.findOne(query);
+      res.send(result);
+    });
+
+    // Mentorship API
+    // Get Mentorship
+    app.get("/Mentorship", async (req, res) => {
+      const result = await MentorshipCollection.find().toArray();
+      res.send(result);
+    });
+    // get Posed Mentorship by ID
+    app.get("/Mentorship/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await MentorshipCollection.findOne(query);
       res.send(result);
     });
 

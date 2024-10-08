@@ -74,8 +74,17 @@ async function run() {
     // Users API
     // Get Users
     app.get("/Users", async (req, res) => {
-      const result = await UsersCollection.find().toArray();
-      res.send(result);
+      const { email } = req.query;
+      if (email) {
+        // If email is provided, find a specific user by email
+        const query = { email };
+        const result = await UsersCollection.findOne(query);
+        res.send(result); // This will return null if not found
+      } else {
+        // If email is not provided, find all users
+        const result = await UsersCollection.find().toArray();
+        res.send(result);
+      }
     });
     // Post new Users
     app.post("/Users", async (req, res) => {

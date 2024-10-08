@@ -117,6 +117,63 @@ async function run() {
       const result = await PostedJobCollection.findOne(query);
       res.send(result);
     });
+    app.get("/Posted-Job/:id/check-application", async (req, res) => {
+      const { email } = req.query; // User email from query params
+      const id = req.params.id; // Job ID from URL
+
+      try {
+        const query = { _id: new ObjectId(id), "PeopleApplied.email": email };
+        const job = await PostedJobCollection.findOne(query);
+
+        if (job) {
+          // User has already applied
+          res.status(200).send({ hasApplied: true });
+        } else {
+          // User has not applied
+          res.status(200).send({ hasApplied: false });
+        }
+      } catch (error) {
+        console.error("Error checking application status:", error);
+        res
+          .status(500)
+          .send({ message: "Error checking application status", error });
+      }
+    });
+
+    // Apply for a Posted Job (update PeopleApplied array)
+    app.post("/Posted-Job/:id/apply", async (req, res) => {
+      const id = req.params.id; // Get the job ID from the request params
+      const applicantData = req.body; // Applicant data sent from the frontend
+
+      // Construct the query to find the job by ID
+      const query = { _id: new ObjectId(id) };
+
+      // Define the update to push the applicant data to PeopleApplied array
+      const update = {
+        $push: {
+          PeopleApplied: applicantData,
+        },
+      };
+
+      try {
+        // Update the job document with the new applicant data
+        const result = await PostedJobCollection.updateOne(query, update);
+
+        // Check if the job was updated
+        if (result.modifiedCount > 0) {
+          res
+            .status(200)
+            .send({ message: "Application submitted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Job not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error applying for the job:", error);
+        res.status(500).send({ message: "Error applying for the job", error });
+      }
+    });
 
     // Posted Gig API
     // Get Posted Gig

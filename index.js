@@ -32,6 +32,7 @@ async function run() {
     await client.connect();
 
     // Connection
+    const UsersCollection = client.db("Master-Job-Shop").collection("Users");
     const PostedJobCollection = client
       .db("Master-Job-Shop")
       .collection("Posted-Job");
@@ -70,6 +71,19 @@ async function run() {
       .collection("Home-Banner");
 
     //API`s
+    // Users API
+    // Get Users
+    app.get("/Users", async (req, res) => {
+      const result = await UsersCollection.find().toArray();
+      res.send(result);
+    });
+    // Post new Users
+    app.post("/Users", async (req, res) => {
+      const request = req.body;
+      const result = await UsersCollection.insertOne(request);
+      res.send(result);
+    });
+
     // Home Banner API
     // Get Home Banner
     app.get("/Home-Banner", async (req, res) => {

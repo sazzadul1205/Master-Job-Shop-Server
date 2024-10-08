@@ -69,6 +69,10 @@ async function run() {
     const HomeBannerCollection = client
       .db("Master-Job-Shop")
       .collection("Home-Banner");
+    const AboutUsCollection = client
+      .db("Master-Job-Shop")
+      .collection("AboutUs");
+    const BlogsCollection = client.db("Master-Job-Shop").collection("Blogs");
 
     //API`s
     // Users API
@@ -237,6 +241,111 @@ async function run() {
     app.get("/WhyChooseUs", async (req, res) => {
       const result = await WhyChooseUsCollection.find().toArray();
       res.send(result);
+    });
+
+    // AboutUs API
+    // Get AboutUs
+    app.get("/AboutUs", async (req, res) => {
+      const result = await AboutUsCollection.find().toArray();
+      res.send(result);
+    });
+    // get Posed AboutUs by ID
+    app.get("/AboutUs/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await AboutUsCollection.findOne(query);
+      res.send(result);
+    });
+
+    // Blogs API
+    // Get Blogs
+    app.get("/Blogs", async (req, res) => {
+      const result = await BlogsCollection.find().toArray();
+      res.send(result);
+    });
+    // get Posed Blogs by ID
+    app.get("/Blogs/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await BlogsCollection.findOne(query);
+      res.send(result);
+    });
+    // POST request to handle voting for a blog
+    app.post("/Blogs/:id/vote", async (req, res) => {
+      const id = req.params.id; // Blog ID
+      const { type, email } = req.body; // Vote type ("up" or "down") and user email
+
+      try {
+        const blog = await BlogsCollection.findOne({ _id: new ObjectId(id) });
+
+        if (!blog) {
+          return res.status(404).json({ message: "Blog not found" });
+        }
+
+        let updatedBlog = { ...blog }; // Copy the existing blog data
+
+        if (type === "up") {
+          if (updatedBlog.peopleUpVoted.includes(email)) {
+            // User has already upvoted, so remove their upvote
+            updatedBlog.upVotes -= 1;
+            updatedBlog.peopleUpVoted = updatedBlog.peopleUpVoted.filter(
+              (userEmail) => userEmail !== email
+            );
+          } else {
+            // User is upvoting for the first time
+            updatedBlog.upVotes += 1;
+            updatedBlog.peopleUpVoted.push(email);
+
+            // If they previously downvoted, remove that downvote
+            if (updatedBlog.peopleDownVoted.includes(email)) {
+              updatedBlog.downVotes -= 1;
+              updatedBlog.peopleDownVoted = updatedBlog.peopleDownVoted.filter(
+                (userEmail) => userEmail !== email
+              );
+            }
+          }
+        } else if (type === "down") {
+          if (updatedBlog.peopleDownVoted.includes(email)) {
+            // User has already downvoted, so remove their downvote
+            updatedBlog.downVotes -= 1;
+            updatedBlog.peopleDownVoted = updatedBlog.peopleDownVoted.filter(
+              (userEmail) => userEmail !== email
+            );
+          } else {
+            // User is downvoting for the first time
+            updatedBlog.downVotes += 1;
+            updatedBlog.peopleDownVoted.push(email);
+
+            // If they previously upvoted, remove that upvote
+            if (updatedBlog.peopleUpVoted.includes(email)) {
+              updatedBlog.upVotes -= 1;
+              updatedBlog.peopleUpVoted = updatedBlog.peopleUpVoted.filter(
+                (userEmail) => userEmail !== email
+              );
+            }
+          }
+        } else {
+          return res.status(400).json({ message: "Invalid vote type" });
+        }
+
+        // Update the blog in the database
+        await BlogsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $set: {
+              upVotes: updatedBlog.upVotes,
+              downVotes: updatedBlog.downVotes,
+              peopleUpVoted: updatedBlog.peopleUpVoted,
+              peopleDownVoted: updatedBlog.peopleDownVoted,
+            },
+          }
+        );
+
+        res.status(200).json({ message: "Vote recorded successfully" });
+      } catch (error) {
+        console.error("Error updating vote:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
     });
 
     // Send a ping to confirm a successful connection

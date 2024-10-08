@@ -56,8 +56,27 @@ async function run() {
     const InternshipCollection = client
       .db("Master-Job-Shop")
       .collection("Internship");
+    const NewsLetterCollection = client
+      .db("Master-Job-Shop")
+      .collection("NewsLetter");
+    const TestimonialsCollection = client
+      .db("Master-Job-Shop")
+      .collection("Testimonials");
+    const WhyChooseUsCollection = client
+      .db("Master-Job-Shop")
+      .collection("WhyChooseUs");
+    const HomeBannerCollection = client
+      .db("Master-Job-Shop")
+      .collection("Home-Banner");
 
     //API`s
+    // Home Banner API
+    // Get Home Banner
+    app.get("/Home-Banner", async (req, res) => {
+      const result = await HomeBannerCollection.find().toArray();
+      res.send(result);
+    });
+
     // Posted Job API
     // Get Posted Job
     app.get("/Posted-Job", async (req, res) => {
@@ -170,6 +189,33 @@ async function run() {
       res.send(result);
     });
 
+    // NewsLetter API
+    // Get NewsLetter
+    app.get("/NewsLetter", async (req, res) => {
+      const result = await NewsLetterCollection.find().toArray();
+      res.send(result);
+    });
+    // Post new NewsLetter
+    app.post("/NewsLetter", async (req, res) => {
+      const request = req.body;
+      const result = await NewsLetterCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Testimonials API
+    // Get Testimonials
+    app.get("/Testimonials", async (req, res) => {
+      const result = await TestimonialsCollection.find().toArray();
+      res.send(result);
+    });
+
+    // WhyChooseUs API
+    // Get WhyChooseUs
+    app.get("/WhyChooseUs", async (req, res) => {
+      const result = await WhyChooseUsCollection.find().toArray();
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -191,7 +237,3 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`Master Job Shop is Running on Port: ${port}`);
 });
-
-
-
-

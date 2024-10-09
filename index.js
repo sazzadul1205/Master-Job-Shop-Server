@@ -262,6 +262,41 @@ async function run() {
       res.send(result);
     });
 
+    // Apply for a Posted Job (update PeopleApplied array)
+    app.post("/Upcoming-Events/:id/apply", async (req, res) => {
+      const id = req.params.id; // Get the job ID from the request params
+      const applicantData = req.body; // Applicant data sent from the frontend
+
+      // Construct the query to find the job by ID
+      const query = { _id: new ObjectId(id) };
+
+      // Define the update to push the applicant data to PeopleApplied array
+      const update = {
+        $push: {
+          ParticipantApplications: applicantData,
+        },
+      };
+
+      try {
+        // Update the job document with the new applicant data
+        const result = await UpcomingEventsCollection.updateOne(query, update);
+
+        // Check if the job was updated
+        if (result.modifiedCount > 0) {
+          res
+            .status(200)
+            .send({ message: "Application submitted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Job not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error applying for the job:", error);
+        res.status(500).send({ message: "Error applying for the job", error });
+      }
+    });
+
     // Courses API
     // Get Courses
     app.get("/Courses", async (req, res) => {
@@ -274,6 +309,41 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await CoursesCollection.findOne(query);
       res.send(result);
+    });
+
+    // Apply for a Posted Job (update PeopleApplied array)
+    app.post("/Courses/:id/apply", async (req, res) => {
+      const id = req.params.id; // Get the job ID from the request params
+      const applicantData = req.body; // Applicant data sent from the frontend
+
+      // Construct the query to find the job by ID
+      const query = { _id: new ObjectId(id) };
+
+      // Define the update to push the applicant data to PeopleApplied array
+      const update = {
+        $push: {
+          applicants: applicantData,
+        },
+      };
+
+      try {
+        // Update the job document with the new applicant data
+        const result = await CoursesCollection.updateOne(query, update);
+
+        // Check if the job was updated
+        if (result.modifiedCount > 0) {
+          res
+            .status(200)
+            .send({ message: "Application submitted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Job not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error applying for the job:", error);
+        res.status(500).send({ message: "Error applying for the job", error });
+      }
     });
 
     // Mentorship API

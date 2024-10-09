@@ -107,9 +107,27 @@ async function run() {
     // Posted Job API
     // Get Posted Job
     app.get("/Posted-Job", async (req, res) => {
-      const result = await PostedJobCollection.find().toArray();
-      res.send(result);
+      try {
+        const { companyCode } = req.query; // Get the companyCode from the query parameters
+        let result;
+
+        if (companyCode) {
+          // If a companyCode is provided, find jobs that match the companyCode
+          result = await PostedJobCollection.find({
+            companyCode: companyCode,
+          }).toArray();
+        } else {
+          // If no companyCode is provided, return all jobs
+          result = await PostedJobCollection.find().toArray();
+        }
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching jobs:", error);
+        res.status(500).send("An error occurred while fetching jobs.");
+      }
     });
+
     // get Posed Posted Job by ID
     app.get("/Posted-Job/:id", async (req, res) => {
       const id = req.params.id;

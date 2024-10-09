@@ -360,6 +360,75 @@ async function run() {
       res.send(result);
     });
 
+    // Apply for a Posted Job (update PeopleApplied array)
+    app.post("/Mentorship/:id/applyReview", async (req, res) => {
+      const id = req.params.id; // Get the job ID from the request params
+      const reviewData = req.body; // Applicant data sent from the frontend
+
+      // Construct the query to find the job by ID
+      const query = { _id: new ObjectId(id) };
+
+      // Define the update to push the applicant data to PeopleApplied array
+      const update = {
+        $push: {
+          reviews: reviewData,
+        },
+      };
+
+      try {
+        // Update the job document with the new applicant data
+        const result = await MentorshipCollection.updateOne(query, update);
+
+        // Check if the job was updated
+        if (result.modifiedCount > 0) {
+          res
+            .status(200)
+            .send({ message: "Application submitted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Job not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error applying for the job:", error);
+        res.status(500).send({ message: "Error applying for the job", error });
+      }
+    });
+    // Apply for a Posted Job (update PeopleApplied array)
+    app.post("/Mentorship/:id/applyApplicant", async (req, res) => {
+      const id = req.params.id; // Get the job ID from the request params
+      const applicantData = req.body; // Applicant data sent from the frontend
+
+      // Construct the query to find the job by ID
+      const query = { _id: new ObjectId(id) };
+
+      // Define the update to push the applicant data to PeopleApplied array
+      const update = {
+        $push: {
+          applicant: applicantData,
+        },
+      };
+
+      try {
+        // Update the job document with the new applicant data
+        const result = await MentorshipCollection.updateOne(query, update);
+
+        // Check if the job was updated
+        if (result.modifiedCount > 0) {
+          res
+            .status(200)
+            .send({ message: "Application submitted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Job not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error applying for the job:", error);
+        res.status(500).send({ message: "Error applying for the job", error });
+      }
+    });
+
     // Internship API
     // Get Internship
     app.get("/Internship", async (req, res) => {

@@ -443,6 +443,41 @@ async function run() {
       res.send(result);
     });
 
+    // Apply for a Posted Job (update PeopleApplied array)
+    app.post("/Internship/:id/apply", async (req, res) => {
+      const id = req.params.id; // Get the job ID from the request params
+      const applicantData = req.body; // Applicant data sent from the frontend
+
+      // Construct the query to find the job by ID
+      const query = { _id: new ObjectId(id) };
+
+      // Define the update to push the applicant data to PeopleApplied array
+      const update = {
+        $push: {
+          applicants: applicantData,
+        },
+      };
+
+      try {
+        // Update the job document with the new applicant data
+        const result = await InternshipCollection.updateOne(query, update);
+
+        // Check if the job was updated
+        if (result.modifiedCount > 0) {
+          res
+            .status(200)
+            .send({ message: "Application submitted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Job not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error applying for the job:", error);
+        res.status(500).send({ message: "Error applying for the job", error });
+      }
+    });
+
     // NewsLetter API
     // Get NewsLetter
     app.get("/NewsLetter", async (req, res) => {

@@ -74,6 +74,11 @@ async function run() {
       .collection("AboutUs");
     const BlogsCollection = client.db("Master-Job-Shop").collection("Blogs");
 
+    // Log
+    const ApplyToJobLogCollection = client
+      .db("Master-Job-Shop")
+      .collection("Apply-To-Job-Log");
+
     //API`s
     // Users API
     // Get Users
@@ -95,6 +100,11 @@ async function run() {
       const request = req.body;
       const result = await UsersCollection.insertOne(request);
       res.send(result);
+    });
+    // Total Users Count API
+    app.get("/UsersCount", async (req, res) => {
+      const count = await UsersCollection.countDocuments();
+      res.json({ count });
     });
 
     // Home Banner API
@@ -127,13 +137,17 @@ async function run() {
         res.status(500).send("An error occurred while fetching jobs.");
       }
     });
-
     // get Posed Posted Job by ID
     app.get("/Posted-Job/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await PostedJobCollection.findOne(query);
       res.send(result);
+    });
+    // Total Posted Jobs Count API
+    app.get("/PostedJobCount", async (req, res) => {
+      const count = await PostedJobCollection.countDocuments();
+      res.json({ count });
     });
 
     // Apply for a Posted Job (update PeopleApplied array)
@@ -184,6 +198,11 @@ async function run() {
       const result = await PostedGigCollection.findOne(query);
       res.send(result);
     });
+    // Total Posted Gig Count API
+    app.get("/PostedGigCount", async (req, res) => {
+      const count = await PostedGigCollection.countDocuments();
+      res.json({ count });
+    });
 
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Posted-Gig/:id/apply", async (req, res) => {
@@ -233,6 +252,11 @@ async function run() {
       const result = await CompanyProfilesCollection.findOne(query);
       res.send(result);
     });
+    // Total Posted Company Profile Count API
+    app.get("/CompanyProfilesCount", async (req, res) => {
+      const count = await CompanyProfilesCollection.countDocuments();
+      res.json({ count });
+    });
 
     // Salary Insight API
     // Get Salary Insight
@@ -247,6 +271,11 @@ async function run() {
       const result = await SalaryInsightCollection.findOne(query);
       res.send(result);
     });
+    // Total Posted Salary Insight Count API
+    app.get("/SalaryInsightCount", async (req, res) => {
+      const count = await SalaryInsightCollection.countDocuments();
+      res.json({ count });
+    });
 
     // Upcoming Events API
     // Get Upcoming Events
@@ -260,6 +289,11 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await UpcomingEventsCollection.findOne(query);
       res.send(result);
+    });
+    // Total Posted Upcoming Events Count API
+    app.get("/UpcomingEventsCount", async (req, res) => {
+      const count = await UpcomingEventsCollection.countDocuments();
+      res.json({ count });
     });
 
     // Apply for a Posted Job (update PeopleApplied array)
@@ -310,6 +344,11 @@ async function run() {
       const result = await CoursesCollection.findOne(query);
       res.send(result);
     });
+    // Total Posted Courses Count API
+    app.get("/CoursesCount", async (req, res) => {
+      const count = await CoursesCollection.countDocuments();
+      res.json({ count });
+    });
 
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Courses/:id/apply", async (req, res) => {
@@ -358,6 +397,11 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await MentorshipCollection.findOne(query);
       res.send(result);
+    });
+    // Total Posted Mentorship Count API
+    app.get("/MentorshipCount", async (req, res) => {
+      const count = await MentorshipCollection.countDocuments();
+      res.json({ count });
     });
 
     // Apply for a Posted Job (update PeopleApplied array)
@@ -442,6 +486,11 @@ async function run() {
       const result = await InternshipCollection.findOne(query);
       res.send(result);
     });
+    // Total Posted Internship Count API
+    app.get("/InternshipCount", async (req, res) => {
+      const count = await InternshipCollection.countDocuments();
+      res.json({ count });
+    });
 
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Internship/:id/apply", async (req, res) => {
@@ -490,12 +539,22 @@ async function run() {
       const result = await NewsLetterCollection.insertOne(request);
       res.send(result);
     });
+    // Total Posted NewsLetter Count API
+    app.get("/NewsLetterCount", async (req, res) => {
+      const count = await NewsLetterCollection.countDocuments();
+      res.json({ count });
+    });
 
     // Testimonials API
     // Get Testimonials
     app.get("/Testimonials", async (req, res) => {
       const result = await TestimonialsCollection.find().toArray();
       res.send(result);
+    });
+    // Total Posted Testimonials Count API
+    app.get("/TestimonialsCount", async (req, res) => {
+      const count = await TestimonialsCollection.countDocuments();
+      res.json({ count });
     });
 
     // WhyChooseUs API
@@ -532,6 +591,12 @@ async function run() {
       const result = await BlogsCollection.findOne(query);
       res.send(result);
     });
+    // Total Posted Blogs Count API
+    app.get("/BlogsCount", async (req, res) => {
+      const count = await BlogsCollection.countDocuments();
+      res.json({ count });
+    });
+
     // POST request to handle voting for a blog
     app.post("/Blogs/:id/vote", async (req, res) => {
       const id = req.params.id; // Blog ID
@@ -608,6 +673,19 @@ async function run() {
         console.error("Error updating vote:", error);
         res.status(500).json({ message: "Internal server error" });
       }
+    });
+
+    // Apply To Job Log API
+    //  get Apply To Job Log
+    app.get("/Apply-To-Job-Log", async (req, res) => {
+      const result = await ApplyToJobLogCollection.find().toArray();
+      res.send(result);
+    });
+    // Post new Apply To Job Log
+    app.post("/Apply-To-Job-Log", async (req, res) => {
+      const request = req.body;
+      const result = await ApplyToJobLogCollection.insertOne(request);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection

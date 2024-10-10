@@ -81,6 +81,9 @@ async function run() {
     const ApplyToGigLogCollection = client
       .db("Master-Gig-Shop")
       .collection("Apply-To-Gig-Log");
+    const ApplyToUpcomingEventLogCollection = client
+      .db("Master-Gig-Shop")
+      .collection("Apply-To-Upcoming-Event-Log");
 
     //API`s
     // Users API
@@ -701,6 +704,19 @@ async function run() {
     app.post("/Apply-To-Gig-Log", async (req, res) => {
       const request = req.body;
       const result = await ApplyToGigLogCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Apply To Upcoming Event Log API
+    //  get Apply To Upcoming Event Log
+    app.get("/Apply-To-Upcoming-Event-Log", async (req, res) => {
+      const result = await ApplyToUpcomingEventLogCollection.find().toArray();
+      res.send(result);
+    });
+    // Post new Apply To Upcoming Event Log
+    app.post("/Apply-To-Upcoming-Event-Log", async (req, res) => {
+      const request = req.body;
+      const result = await ApplyToUpcomingEventLogCollection.insertOne(request);
       res.send(result);
     });
 

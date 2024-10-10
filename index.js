@@ -78,6 +78,9 @@ async function run() {
     const ApplyToJobLogCollection = client
       .db("Master-Job-Shop")
       .collection("Apply-To-Job-Log");
+    const ApplyToGigLogCollection = client
+      .db("Master-Gig-Shop")
+      .collection("Apply-To-Gig-Log");
 
     //API`s
     // Users API
@@ -685,6 +688,19 @@ async function run() {
     app.post("/Apply-To-Job-Log", async (req, res) => {
       const request = req.body;
       const result = await ApplyToJobLogCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Apply To Gig Log API
+    //  get Apply To Gig Log
+    app.get("/Apply-To-Gig-Log", async (req, res) => {
+      const result = await ApplyToGigLogCollection.find().toArray();
+      res.send(result);
+    });
+    // Post new Apply To Gig Log
+    app.post("/Apply-To-Gig-Log", async (req, res) => {
+      const request = req.body;
+      const result = await ApplyToGigLogCollection.insertOne(request);
       res.send(result);
     });
 

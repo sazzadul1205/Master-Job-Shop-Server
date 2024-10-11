@@ -78,23 +78,25 @@ async function run() {
     const ApplyToJobLogCollection = client
       .db("Master-Job-Shop")
       .collection("Apply-To-Job-Log");
+
     const ApplyToGigLogCollection = client
-      .db("Master-Gig-Shop")
+      .db("Master-Job-Shop")
       .collection("Apply-To-Gig-Log");
+
     const ApplyToUpcomingEventLogCollection = client
-      .db("Master-Gig-Shop")
+      .db("Master-Job-Shop")
       .collection("Apply-To-Upcoming-Event-Log");
     const ApplyToMentorshipLogCollection = client
-      .db("Master-Gig-Shop")
+      .db("Master-Job-Shop")
       .collection("Apply-To-Mentorship-Log");
     const ReviewToMentorshipLogCollection = client
-      .db("Master-Gig-Shop")
+      .db("Master-Job-Shop")
       .collection("Review-To-Mentorship-Log");
     const ApplyToCourseLogCollection = client
-      .db("Master-Gig-Shop")
+      .db("Master-Job-Shop")
       .collection("Apply-To-Course-Log");
     const ApplyToInternshipLogCollection = client
-      .db("Master-Gig-Shop")
+      .db("Master-Job-Shop")
       .collection("Apply-To-Internship-Log");
 
     //API`s
@@ -692,6 +694,8 @@ async function run() {
         res.status(500).json({ message: "Internal server error" });
       }
     });
+
+    // All the Logs
 
     // Apply To Job Log API
     //  get Apply To Job Log

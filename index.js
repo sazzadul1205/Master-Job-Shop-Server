@@ -84,6 +84,12 @@ async function run() {
     const ApplyToUpcomingEventLogCollection = client
       .db("Master-Gig-Shop")
       .collection("Apply-To-Upcoming-Event-Log");
+    const ApplyToMentorshipLogCollection = client
+      .db("Master-Gig-Shop")
+      .collection("Apply-To-Mentorship-Log");
+    const ReviewToMentorshipLogCollection = client
+      .db("Master-Gig-Shop")
+      .collection("Review-To-Mentorship-Log");
 
     //API`s
     // Users API
@@ -717,6 +723,32 @@ async function run() {
     app.post("/Apply-To-Upcoming-Event-Log", async (req, res) => {
       const request = req.body;
       const result = await ApplyToUpcomingEventLogCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Apply To Mentorship Log API
+    //  get Apply To Mentorship Log
+    app.get("/Apply-To-Mentorship-Log", async (req, res) => {
+      const result = await ApplyToMentorshipLogCollection.find().toArray();
+      res.send(result);
+    });
+    // Post new Apply To Mentorship Log
+    app.post("/Apply-To-Mentorship-Log", async (req, res) => {
+      const request = req.body;
+      const result = await ApplyToMentorshipLogCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Review To Mentorship Log API
+    //  get Review To Mentorship Log
+    app.get("/Review-To-Mentorship-Log", async (req, res) => {
+      const result = await ReviewToMentorshipLogCollection.find().toArray();
+      res.send(result);
+    });
+    // Post new Review To Mentorship Log
+    app.post("/Review-To-Mentorship-Log", async (req, res) => {
+      const request = req.body;
+      const result = await ReviewToMentorshipLogCollection.insertOne(request);
       res.send(result);
     });
 

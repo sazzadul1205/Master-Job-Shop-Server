@@ -90,6 +90,9 @@ async function run() {
     const ReviewToMentorshipLogCollection = client
       .db("Master-Gig-Shop")
       .collection("Review-To-Mentorship-Log");
+    const ApplyToCourseLogCollection = client
+      .db("Master-Gig-Shop")
+      .collection("Apply-To-Course-Log");
 
     //API`s
     // Users API
@@ -749,6 +752,19 @@ async function run() {
     app.post("/Review-To-Mentorship-Log", async (req, res) => {
       const request = req.body;
       const result = await ReviewToMentorshipLogCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Apply To Courses Log API
+    //  get Apply To Courses Log
+    app.get("/Apply-To-Course-Log", async (req, res) => {
+      const result = await ApplyToCourseLogCollection.find().toArray();
+      res.send(result);
+    });
+    // Post new Apply To Courses Log
+    app.post("/Apply-To-Course-Log", async (req, res) => {
+      const request = req.body;
+      const result = await ApplyToCourseLogCollection.insertOne(request);
       res.send(result);
     });
 

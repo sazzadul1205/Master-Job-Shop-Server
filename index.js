@@ -93,6 +93,9 @@ async function run() {
     const ApplyToCourseLogCollection = client
       .db("Master-Gig-Shop")
       .collection("Apply-To-Course-Log");
+    const ApplyToInternshipLogCollection = client
+      .db("Master-Gig-Shop")
+      .collection("Apply-To-Internship-Log");
 
     //API`s
     // Users API
@@ -765,6 +768,19 @@ async function run() {
     app.post("/Apply-To-Course-Log", async (req, res) => {
       const request = req.body;
       const result = await ApplyToCourseLogCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Apply To Internship Log API
+    //  get Apply To Internship Log
+    app.get("/Apply-To-Internship-Log", async (req, res) => {
+      const result = await ApplyToInternshipLogCollection.find().toArray();
+      res.send(result);
+    });
+    // Post new Apply To Internship Log
+    app.post("/Apply-To-Internship-Log", async (req, res) => {
+      const request = req.body;
+      const result = await ApplyToInternshipLogCollection.insertOne(request);
       res.send(result);
     });
 

@@ -115,16 +115,50 @@ async function run() {
         res.send(result);
       }
     });
+    // Total Users Count API
+    app.get("/UsersCount", async (req, res) => {
+      const count = await UsersCollection.countDocuments();
+      res.json({ count });
+    });
     // Post new Users
     app.post("/Users", async (req, res) => {
       const request = req.body;
       const result = await UsersCollection.insertOne(request);
       res.send(result);
     });
-    // Total Users Count API
-    app.get("/UsersCount", async (req, res) => {
-      const count = await UsersCollection.countDocuments();
-      res.json({ count });
+    const { ObjectId } = require("mongodb");
+
+    // Update User by ID (PUT)
+    app.put("/Users/:id", async (req, res) => {
+      const id = req.params.id; // Get the user ID from the URL params
+      const updatedUser = req.body; // Get the updated user data from the request body
+
+      try {
+        // Create a filter to find the user by ID
+        const filter = { _id: new ObjectId(id) };
+
+        // Define the update operation (e.g., update the role and company code)
+        const updateDoc = {
+          $set: {
+            role: updatedUser.role,
+            companyCode: updatedUser.companyCode,
+          },
+        };
+
+        // Update the user in the database
+        const result = await UsersCollection.updateOne(filter, updateDoc);
+
+        // If no documents were matched, the user doesn't exist
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
+        // Send success response
+        res.send({ message: "User updated successfully", result });
+      } catch (error) {
+        // Send error response in case of failure
+        res.status(500).send({ message: "Failed to update user", error });
+      }
     });
 
     // Home Banner API

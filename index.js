@@ -436,6 +436,58 @@ async function run() {
       res.json({ count });
     });
 
+    // Post Home Banners
+    app.post("/Salary-Insight", async (req, res) => {
+      const request = req.body;
+      const result = await SalaryInsightCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Delete a single Salary Insight by ID
+    app.delete("/Salary-Insight/delete/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+
+        const result = await SalaryInsightCollection.deleteOne(query);
+
+        if (result.deletedCount === 1) {
+          res
+            .status(200)
+            .send({ message: "Salary Insight deleted successfully." });
+        } else {
+          res.status(404).send({ message: "Salary Insight not found." });
+        }
+      } catch (error) {
+        console.error("Error deleting salary insight:", error);
+        res.status(500).send({ message: "Failed to delete Salary Insight." });
+      }
+    });
+    // Delete multiple Salary Insights by IDs
+    app.delete("/Salary-Insight/delete", async (req, res) => {
+      try {
+        const { insightsToDelete } = req.body;
+        const objectIds = insightsToDelete.map((id) => new ObjectId(id));
+
+        const query = { _id: { $in: objectIds } };
+
+        const result = await SalaryInsightCollection.deleteMany(query);
+
+        if (result.deletedCount > 0) {
+          res.status(200).send({
+            message: `${result.deletedCount} Salary Insights deleted successfully.`,
+          });
+        } else {
+          res
+            .status(404)
+            .send({ message: "No Salary Insights found to delete." });
+        }
+      } catch (error) {
+        console.error("Error deleting salary insights:", error);
+        res.status(500).send({ message: "Failed to delete Salary Insights." });
+      }
+    });
+
     // Upcoming Events API
     // Get Upcoming Events
     app.get("/Upcoming-Events", async (req, res) => {

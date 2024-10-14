@@ -268,11 +268,9 @@ async function run() {
 
         // Check if any documents were deleted
         if (result.deletedCount > 0) {
-          res
-            .status(200)
-            .send({
-              message: `${result.deletedCount} job(s) deleted successfully!`,
-            });
+          res.status(200).send({
+            message: `${result.deletedCount} job(s) deleted successfully!`,
+          });
         } else {
           res
             .status(404)
@@ -337,6 +335,50 @@ async function run() {
       } catch (error) {
         console.error("Error applying for the job:", error);
         res.status(500).send({ message: "Error applying for the job", error });
+      }
+    });
+    // Post Home Banners
+    app.post("/Posted-Gig", async (req, res) => {
+      const request = req.body;
+      const result = await PostedGigCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Delete Posted Gig by ID
+    app.delete("/Posted-Gig/delete", async (req, res) => {
+      const { gigsToDelete } = req.body; // Expecting an array of gig IDs to delete
+
+      // Validate the input
+      if (!Array.isArray(gigsToDelete) || gigsToDelete.length === 0) {
+        return res
+          .status(400)
+          .send({ message: "Invalid request. No gig IDs provided." });
+      }
+
+      try {
+        // Convert gig IDs to ObjectId
+        const objectIds = gigsToDelete.map((id) => new ObjectId(id));
+
+        // Delete the gigs from the collection
+        const result = await PostedGigCollection.deleteMany({
+          _id: { $in: objectIds },
+        });
+
+        // Check if any documents were deleted
+        if (result.deletedCount > 0) {
+          res.status(200).send({
+            message: `${result.deletedCount} gig(s) deleted successfully!`,
+          });
+        } else {
+          res
+            .status(404)
+            .send({ message: "No gigs found with the provided IDs." });
+        }
+      } catch (error) {
+        console.error("Error deleting gigs:", error);
+        res
+          .status(500)
+          .send({ message: "An error occurred while deleting gigs.", error });
       }
     });
 

@@ -98,6 +98,9 @@ async function run() {
     const ApplyToInternshipLogCollection = client
       .db("Master-Job-Shop")
       .collection("Apply-To-Internship-Log");
+    const DeleteLogCollection = client
+      .db("Master-Job-Shop")
+      .collection("Delete-Log");
 
     //API`s
     // Users API
@@ -126,7 +129,6 @@ async function run() {
       const result = await UsersCollection.insertOne(request);
       res.send(result);
     });
-    const { ObjectId } = require("mongodb");
 
     // Update User by ID (PUT)
     app.put("/Users/:id", async (req, res) => {
@@ -238,6 +240,51 @@ async function run() {
         res.status(500).send({ message: "Error applying for the job", error });
       }
     });
+    // Post Home Banners
+    app.post("/Posted-Job", async (req, res) => {
+      const request = req.body;
+      const result = await PostedJobCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Delete Posted Job by ID
+    app.delete("/Posted-Job/delete", async (req, res) => {
+      const { jobsToDelete } = req.body; // Expecting an array of job IDs to delete
+
+      if (!Array.isArray(jobsToDelete) || jobsToDelete.length === 0) {
+        return res
+          .status(400)
+          .send({ message: "Invalid request. No job IDs provided." });
+      }
+
+      try {
+        // Convert job IDs to ObjectId
+        const objectIds = jobsToDelete.map((id) => new ObjectId(id));
+
+        // Delete the jobs from the collection
+        const result = await PostedJobCollection.deleteMany({
+          _id: { $in: objectIds },
+        });
+
+        // Check if any documents were deleted
+        if (result.deletedCount > 0) {
+          res
+            .status(200)
+            .send({
+              message: `${result.deletedCount} job(s) deleted successfully!`,
+            });
+        } else {
+          res
+            .status(404)
+            .send({ message: "No jobs found with the provided IDs." });
+        }
+      } catch (error) {
+        console.error("Error deleting jobs:", error);
+        res
+          .status(500)
+          .send({ message: "An error occurred while deleting jobs.", error });
+      }
+    });
 
     // Posted Gig API
     // Get Posted Gig
@@ -306,6 +353,22 @@ async function run() {
       const result = await CompanyProfilesCollection.findOne(query);
       res.send(result);
     });
+    // Get only Company Names and Codes
+    app.get("/Company-Profiles-Names-Codes", async (req, res) => {
+      try {
+        const projection = { companyName: 1, companyCode: 1 }; // Select only companyName and companyCode
+        const result = await CompanyProfilesCollection.find(
+          {},
+          { projection }
+        ).toArray();
+        res.send(result);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: "Failed to fetch company names and codes", error });
+      }
+    });
+
     // Total Posted Company Profile Count API
     app.get("/CompanyProfilesCount", async (req, res) => {
       const count = await CompanyProfilesCollection.countDocuments();
@@ -820,6 +883,32 @@ async function run() {
       const request = req.body;
       const result = await ApplyToInternshipLogCollection.insertOne(request);
       res.send(result);
+    });
+
+    // Delete Log API
+    //  get Delete Log
+    app.get("/Delete-Log", async (req, res) => {
+      const result = await DeleteLogCollection.find().toArray();
+      res.send(result);
+    });
+    // POST new Delete Log
+    app.post("/Delete-Log", async (req, res) => {
+      const request = req.body;
+
+      // Basic validation
+      if (!request || !Array.isArray(request) || request.length === 0) {
+        return res
+          .status(400)
+          .send({ message: "Invalid data. Expected an array of logs." });
+      }
+
+      try {
+        const result = await DeleteLogCollection.insertMany(request); // Use insertMany for multiple logs
+        res.status(201).send(result);
+      } catch (error) {
+        console.error("Error inserting delete logs:", error);
+        res.status(500).send({ message: "Failed to log delete operations." });
+      }
     });
 
     // Send a ping to confirm a successful connection

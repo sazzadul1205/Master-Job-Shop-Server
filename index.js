@@ -637,7 +637,7 @@ async function run() {
       res.send(result);
     });
 
-    // Delete an Upcoming Event by ID
+    // Delete an Courses by ID
     app.delete("/Courses/:id", async (req, res) => {
       const id = req.params.id; // Get the event ID from the request parameters
       const query = { _id: new ObjectId(id) }; // Construct the query to find the event by ID
@@ -745,6 +745,29 @@ async function run() {
       } catch (error) {
         console.error("Error applying for the job:", error);
         res.status(500).send({ message: "Error applying for the job", error });
+      }
+    });
+
+    // Delete an Mentorship by ID
+    app.delete("/Mentorship/:id", async (req, res) => {
+      const id = req.params.id; // Get the event ID from the request parameters
+      const query = { _id: new ObjectId(id) }; // Construct the query to find the event by ID
+
+      try {
+        // Delete the event document from the collection
+        const result = await MentorshipCollection.deleteOne(query);
+
+        // Check if the event was deleted
+        if (result.deletedCount > 0) {
+          res.status(200).send({ message: "Event deleted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Event not found or already deleted." });
+        }
+      } catch (error) {
+        console.error("Error deleting the event:", error);
+        res.status(500).send({ message: "Error deleting the event", error });
       }
     });
 

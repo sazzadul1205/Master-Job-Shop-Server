@@ -541,6 +541,35 @@ async function run() {
         res.status(500).send({ message: "Error applying for the job", error });
       }
     });
+    // Post Home Banners
+    app.post("/Upcoming-Events", async (req, res) => {
+      const request = req.body;
+      const result = await UpcomingEventsCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Delete an Upcoming Event by ID
+    app.delete("/Upcoming-Events/:id", async (req, res) => {
+      const id = req.params.id; // Get the event ID from the request parameters
+      const query = { _id: new ObjectId(id) }; // Construct the query to find the event by ID
+
+      try {
+        // Delete the event document from the collection
+        const result = await UpcomingEventsCollection.deleteOne(query);
+
+        // Check if the event was deleted
+        if (result.deletedCount > 0) {
+          res.status(200).send({ message: "Event deleted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Event not found or already deleted." });
+        }
+      } catch (error) {
+        console.error("Error deleting the event:", error);
+        res.status(500).send({ message: "Error deleting the event", error });
+      }
+    });
 
     // Courses API
     // Get Courses

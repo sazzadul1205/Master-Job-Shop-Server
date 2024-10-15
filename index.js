@@ -410,11 +410,17 @@ async function run() {
           .send({ message: "Failed to fetch company names and codes", error });
       }
     });
-
     // Total Posted Company Profile Count API
     app.get("/CompanyProfilesCount", async (req, res) => {
       const count = await CompanyProfilesCollection.countDocuments();
       res.json({ count });
+    });
+
+    // Post Company Profiles
+    app.post("/Company-Profiles", async (req, res) => {
+      const request = req.body;
+      const result = await CompanyProfilesCollection.insertOne(request);
+      res.send(result);
     });
 
     // Salary Insight API
@@ -436,7 +442,7 @@ async function run() {
       res.json({ count });
     });
 
-    // Post Home Banners
+    // Post Salary Insight
     app.post("/Salary-Insight", async (req, res) => {
       const request = req.body;
       const result = await SalaryInsightCollection.insertOne(request);
@@ -541,7 +547,7 @@ async function run() {
         res.status(500).send({ message: "Error applying for the job", error });
       }
     });
-    // Post Home Banners
+    // Post Upcoming Events
     app.post("/Upcoming-Events", async (req, res) => {
       const request = req.body;
       const result = await UpcomingEventsCollection.insertOne(request);
@@ -622,6 +628,35 @@ async function run() {
       } catch (error) {
         console.error("Error applying for the job:", error);
         res.status(500).send({ message: "Error applying for the job", error });
+      }
+    });
+    // Post Courses
+    app.post("/Courses", async (req, res) => {
+      const request = req.body;
+      const result = await CoursesCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Delete an Upcoming Event by ID
+    app.delete("/Courses/:id", async (req, res) => {
+      const id = req.params.id; // Get the event ID from the request parameters
+      const query = { _id: new ObjectId(id) }; // Construct the query to find the event by ID
+
+      try {
+        // Delete the event document from the collection
+        const result = await CoursesCollection.deleteOne(query);
+
+        // Check if the event was deleted
+        if (result.deletedCount > 0) {
+          res.status(200).send({ message: "Event deleted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Event not found or already deleted." });
+        }
+      } catch (error) {
+        console.error("Error deleting the event:", error);
+        res.status(500).send({ message: "Error deleting the event", error });
       }
     });
 

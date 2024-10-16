@@ -854,16 +854,17 @@ async function run() {
       const result = await NewsLetterCollection.find().toArray();
       res.send(result);
     });
+    // Total Posted NewsLetter Count API
+    app.get("/NewsLetterCount", async (req, res) => {
+      const count = await NewsLetterCollection.countDocuments();
+      res.json({ count });
+    });
+
     // Post new NewsLetter
     app.post("/NewsLetter", async (req, res) => {
       const request = req.body;
       const result = await NewsLetterCollection.insertOne(request);
       res.send(result);
-    });
-    // Total Posted NewsLetter Count API
-    app.get("/NewsLetterCount", async (req, res) => {
-      const count = await NewsLetterCollection.countDocuments();
-      res.json({ count });
     });
 
     // Delete an Internship by ID
@@ -899,6 +900,29 @@ async function run() {
     app.get("/TestimonialsCount", async (req, res) => {
       const count = await TestimonialsCollection.countDocuments();
       res.json({ count });
+    });
+
+    // Delete an Testimonials by ID
+    app.delete("/Testimonials/:id", async (req, res) => {
+      const id = req.params.id; // Get the event ID from the request parameters
+      const query = { _id: new ObjectId(id) }; // Construct the query to find the event by ID
+
+      try {
+        // Delete the event document from the collection
+        const result = await TestimonialsCollection.deleteOne(query);
+
+        // Check if the event was deleted
+        if (result.deletedCount > 0) {
+          res.status(200).send({ message: "Event deleted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Event not found or already deleted." });
+        }
+      } catch (error) {
+        console.error("Error deleting the event:", error);
+        res.status(500).send({ message: "Error deleting the event", error });
+      }
     });
 
     // WhyChooseUs API
@@ -1016,6 +1040,35 @@ async function run() {
       } catch (error) {
         console.error("Error updating vote:", error);
         res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    // Post Blogs
+    app.post("/Blogs", async (req, res) => {
+      const request = req.body;
+      const result = await BlogsCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Delete an Blogs by ID
+    app.delete("/Blogs/:id", async (req, res) => {
+      const id = req.params.id; // Get the event ID from the request parameters
+      const query = { _id: new ObjectId(id) }; // Construct the query to find the event by ID
+
+      try {
+        // Delete the event document from the collection
+        const result = await BlogsCollection.deleteOne(query);
+
+        // Check if the event was deleted
+        if (result.deletedCount > 0) {
+          res.status(200).send({ message: "Event deleted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Event not found or already deleted." });
+        }
+      } catch (error) {
+        console.error("Error deleting the event:", error);
+        res.status(500).send({ message: "Error deleting the event", error });
       }
     });
 

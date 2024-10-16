@@ -174,18 +174,19 @@ async function run() {
     // Get Posted Job
     app.get("/Posted-Job", async (req, res) => {
       try {
-        const { companyCode } = req.query; // Get the companyCode from the query parameters
-        let result;
+        const { companyCode, email } = req.query; // Get both companyCode and email from the query parameters
+        let query = {}; // Initialize an empty query object
 
+        // Add conditions based on the provided query parameters
         if (companyCode) {
-          // If a companyCode is provided, find jobs that match the companyCode
-          result = await PostedJobCollection.find({
-            companyCode: companyCode,
-          }).toArray();
-        } else {
-          // If no companyCode is provided, return all jobs
-          result = await PostedJobCollection.find().toArray();
+          query.companyCode = companyCode; // Filter by companyCode if provided
         }
+        if (email) {
+          query["postedBy.email"] = email; // Filter by postedBy.email if provided
+        }
+
+        // Fetch the jobs based on the constructed query
+        const result = await PostedJobCollection.find(query).toArray();
 
         res.send(result);
       } catch (error) {
@@ -247,6 +248,40 @@ async function run() {
       res.send(result);
     });
 
+    // Update Posted Job by ID
+    app.put("/Posted-Job/:id", async (req, res) => {
+      const id = req.params.id; // Get the job ID from the request parameters
+      const updatedData = req.body; // Data to update, sent from the client
+
+      // Construct the query to find the job by its ID
+      const query = { _id: new ObjectId(id) };
+
+      // Construct the update object with the updated job data
+      const update = {
+        $set: updatedData, // Use $set to update the fields in the job document
+      };
+
+      try {
+        // Perform the update in the database
+        const result = await PostedJobCollection.updateOne(query, update);
+
+        // Check if the update was successful
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Job updated successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Job not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error updating the job:", error);
+        res.status(500).send({
+          message: "An error occurred while updating the job.",
+          error,
+        });
+      }
+    });
+
     // Delete Posted Job by ID
     app.delete("/Posted-Job/delete", async (req, res) => {
       const { jobsToDelete } = req.body; // Expecting an array of job IDs to delete
@@ -287,8 +322,24 @@ async function run() {
     // Posted Gig API
     // Get Posted Gig
     app.get("/Posted-Gig", async (req, res) => {
-      const result = await PostedGigCollection.find().toArray();
-      res.send(result);
+      const { postedBy } = req.query; // Get the 'postedBy' email from query parameters
+
+      try {
+        let result;
+        if (postedBy) {
+          // If 'postedBy' is provided, filter results by the email
+          result = await PostedGigCollection.find({
+            PostedBy: postedBy,
+          }).toArray();
+        } else {
+          // If no 'postedBy' is provided, return all gigs
+          result = await PostedGigCollection.find().toArray();
+        }
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching posted gigs:", error);
+        res.status(500).send({ message: "Error fetching posted gigs", error });
+      }
     });
     // get Posed Posted Gig by ID
     app.get("/Posted-Gig/:id", async (req, res) => {
@@ -342,6 +393,40 @@ async function run() {
       const request = req.body;
       const result = await PostedGigCollection.insertOne(request);
       res.send(result);
+    });
+
+    // Update Posted Job by ID
+    app.put("/Posted-Gig/:id", async (req, res) => {
+      const id = req.params.id; // Get the job ID from the request parameters
+      const updatedData = req.body; // Data to update, sent from the client
+
+      // Construct the query to find the job by its ID
+      const query = { _id: new ObjectId(id) };
+
+      // Construct the update object with the updated job data
+      const update = {
+        $set: updatedData, // Use $set to update the fields in the job document
+      };
+
+      try {
+        // Perform the update in the database
+        const result = await PostedGigCollection.updateOne(query, update);
+
+        // Check if the update was successful
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Gig updated successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Gig not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error updating the job:", error);
+        res.status(500).send({
+          message: "An error occurred while updating the job.",
+          error,
+        });
+      }
     });
 
     // Delete Posted Gig by ID

@@ -318,6 +318,42 @@ async function run() {
           .send({ message: "An error occurred while deleting jobs.", error });
       }
     });
+    // Delete a single applicant from PeopleApplied
+    app.delete("/Posted-Job/:id/applicant", async (req, res) => {
+      const jobId = req.params.id; // Get the job ID from the request parameters
+      const { email } = req.body; // Expecting the applicant's email in the request body
+
+      if (!email) {
+        return res
+          .status(400)
+          .send({ message: "Applicant's email is required." });
+      }
+
+      try {
+        // Find the job by its ID and remove the applicant from the PeopleApplied array
+        const query = { _id: new ObjectId(jobId) };
+
+        // Update to pull the applicant based on email
+        const update = {
+          $pull: { PeopleApplied: { email } }, // Remove the applicant with matching email
+        };
+
+        const result = await PostedJobCollection.updateOne(query, update);
+
+        // Check if any documents were updated
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Applicant deleted successfully!" });
+        } else {
+          res.status(404).send({ message: "Job or applicant not found." });
+        }
+      } catch (error) {
+        console.error("Error deleting applicant:", error);
+        res.status(500).send({
+          message: "An error occurred while deleting applicant.",
+          error,
+        });
+      }
+    });
 
     // Posted Gig API
     // Get Posted Gig
@@ -464,6 +500,42 @@ async function run() {
         res
           .status(500)
           .send({ message: "An error occurred while deleting gigs.", error });
+      }
+    });
+    // Delete a specific applicant from the peopleBided array
+    app.delete("/Posted-Gig/:id/bidder", async (req, res) => {
+      const gigId = req.params.id; // Get the gig ID from the request parameters
+      const { email } = req.body; // Expecting the bidder's email in the request body
+
+      // Validate the input
+      if (!email) {
+        return res.status(400).send({ message: "Bidder's email is required." });
+      }
+
+      try {
+        // Construct the query to find the gig by its ID
+        const query = { _id: new ObjectId(gigId) };
+
+        // Update to pull the bidder based on email
+        const update = {
+          $pull: { peopleBided: { biderEmail: email } }, // Remove the bidder with matching email
+        };
+
+        // Execute the update operation
+        const result = await PostedGigCollection.updateOne(query, update);
+
+        // Check if any documents were modified
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Bidder deleted successfully!" });
+        } else {
+          res.status(404).send({ message: "Gig or bidder not found." });
+        }
+      } catch (error) {
+        console.error("Error deleting bidder:", error);
+        res.status(500).send({
+          message: "An error occurred while deleting the bidder.",
+          error,
+        });
       }
     });
 

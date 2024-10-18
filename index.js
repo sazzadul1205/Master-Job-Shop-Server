@@ -542,9 +542,24 @@ async function run() {
     // Company Profiles API
     // Get Company Profiles
     app.get("/Company-Profiles", async (req, res) => {
-      const result = await CompanyProfilesCollection.find().toArray();
-      res.send(result);
+      const { postedBy } = req.query; // Get the 'postedBy' query parameter from the request
+
+      let query = {}; // Initialize an empty query object
+
+      // If a 'postedBy' query parameter exists, add it to the query object
+      if (postedBy) {
+        query = { postedBy };
+      }
+
+      try {
+        const result = await CompanyProfilesCollection.find(query).toArray(); // Use the query object to find matching profiles
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching company profiles:", error);
+        res.status(500).send({ message: "Failed to fetch company profiles" });
+      }
     });
+
     // get Posed Company Profiles by ID
     app.get("/Company-Profiles/:id", async (req, res) => {
       const id = req.params.id;
@@ -573,11 +588,80 @@ async function run() {
       res.json({ count });
     });
 
+    // Update Company Profiles by ID
+    app.put("/Company-Profiles/:id", async (req, res) => {
+      const id = req.params.id; // Get the ID from the URL parameters
+      const updatedCompanyProfile = req.body; // Get the updated data from the request body
+
+      const query = { _id: new ObjectId(id) }; // Create a query object to find the specific company profile
+      const update = {
+        $set: updatedCompanyProfile, // Use the $set operator to update the fields
+      };
+
+      try {
+        const result = await CompanyProfilesCollection.updateOne(query, update); // Update the company profile in the database
+
+        if (result.modifiedCount === 1) {
+          // If one document was modified, return a success message
+          res.send({ message: "Company profile updated successfully." });
+        } else {
+          // If no documents were modified, return an error message
+          res.status(404).send({ message: "Company profile not found." });
+        }
+      } catch (error) {
+        console.error("Error updating company profile:", error);
+        res.status(500).send({ message: "Failed to update company profile" });
+      }
+    });
+
     // Post Company Profiles
     app.post("/Company-Profiles", async (req, res) => {
       const request = req.body;
       const result = await CompanyProfilesCollection.insertOne(request);
       res.send(result);
+    });
+
+    // Delete Company Profiles by ID
+    app.delete("/Company-Profiles/delete", async (req, res) => {
+      const { profilesToDelete } = req.body; // Expecting an array of company profile IDs to delete
+
+      // Validate the input
+      if (!Array.isArray(profilesToDelete) || profilesToDelete.length === 0) {
+        return res
+          .status(400)
+          .send({ message: "Invalid request. No profile IDs provided." });
+      }
+
+      try {
+        // Convert profile IDs to ObjectId
+        const objectIds = profilesToDelete.map((id) => new ObjectId(id));
+
+        // Delete the profiles from the collection
+        const result = await CompanyProfilesCollection.deleteMany({
+          _id: { $in: objectIds },
+        });
+
+        // Check if any documents were deleted
+        if (result.deletedCount > 0) {
+          res.status(200).send({
+            message: `${result.deletedCount} profile(s) deleted successfully!`,
+          });
+        } else {
+          res
+            .status(404)
+            .send({
+              message: "No company profiles found with the provided IDs.",
+            });
+        }
+      } catch (error) {
+        console.error("Error deleting company profiles:", error);
+        res
+          .status(500)
+          .send({
+            message: "An error occurred while deleting company profiles.",
+            error,
+          });
+      }
     });
 
     // Salary Insight API

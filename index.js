@@ -647,20 +647,16 @@ async function run() {
             message: `${result.deletedCount} profile(s) deleted successfully!`,
           });
         } else {
-          res
-            .status(404)
-            .send({
-              message: "No company profiles found with the provided IDs.",
-            });
+          res.status(404).send({
+            message: "No company profiles found with the provided IDs.",
+          });
         }
       } catch (error) {
         console.error("Error deleting company profiles:", error);
-        res
-          .status(500)
-          .send({
-            message: "An error occurred while deleting company profiles.",
-            error,
-          });
+        res.status(500).send({
+          message: "An error occurred while deleting company profiles.",
+          error,
+        });
       }
     });
 
@@ -738,31 +734,46 @@ async function run() {
     // Upcoming Events API
     // Get Upcoming Events
     app.get("/Upcoming-Events", async (req, res) => {
-      const result = await UpcomingEventsCollection.find().toArray();
-      res.send(result);
+      try {
+        const { postedBy } = req.query; // Extract 'postedBy' from query parameters
+        let query = {}; // Initialize an empty query object
+
+        // If postedBy is provided, filter the results
+        if (postedBy) {
+          query.postedBy = postedBy; // Add condition for postedBy
+        }
+
+        const result = await UpcomingEventsCollection.find(query).toArray(); // Pass the query to find
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching upcoming events:", error);
+        res.status(500).send("Internal Server Error");
+      }
     });
-    // get Posed Upcoming Events by ID
+
+    // Get Posed Upcoming Events by ID
     app.get("/Upcoming-Events/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await UpcomingEventsCollection.findOne(query);
       res.send(result);
     });
+
     // Total Posted Upcoming Events Count API
     app.get("/UpcomingEventsCount", async (req, res) => {
       const count = await UpcomingEventsCollection.countDocuments();
       res.json({ count });
     });
 
-    // Apply for a Posted Job (update PeopleApplied array)
+    // Apply for a Posted Job (update ParticipantApplications array)
     app.post("/Upcoming-Events/:id/apply", async (req, res) => {
-      const id = req.params.id; // Get the job ID from the request params
+      const id = req.params.id; // Get the event ID from the request params
       const applicantData = req.body; // Applicant data sent from the frontend
 
-      // Construct the query to find the job by ID
+      // Construct the query to find the event by ID
       const query = { _id: new ObjectId(id) };
 
-      // Define the update to push the applicant data to PeopleApplied array
+      // Define the update to push the applicant data to ParticipantApplications array
       const update = {
         $push: {
           ParticipantApplications: applicantData,
@@ -770,10 +781,10 @@ async function run() {
       };
 
       try {
-        // Update the job document with the new applicant data
+        // Update the event document with the new applicant data
         const result = await UpcomingEventsCollection.updateOne(query, update);
 
-        // Check if the job was updated
+        // Check if the event was updated
         if (result.modifiedCount > 0) {
           res
             .status(200)
@@ -781,19 +792,95 @@ async function run() {
         } else {
           res
             .status(404)
-            .send({ message: "Job not found or no changes made." });
+            .send({ message: "Event not found or no changes made." });
         }
       } catch (error) {
-        console.error("Error applying for the job:", error);
-        res.status(500).send({ message: "Error applying for the job", error });
+        console.error("Error applying for the event:", error);
+        res
+          .status(500)
+          .send({ message: "Error applying for the event", error });
       }
     });
+
     // Post Upcoming Events
     app.post("/Upcoming-Events", async (req, res) => {
       const request = req.body;
       const result = await UpcomingEventsCollection.insertOne(request);
       res.send(result);
     });
+
+    // Update an Upcoming Event by ID
+    app.put("/Upcoming-Events/:id", async (req, res) => {
+      const id = req.params.id; // Get the event ID from the request params
+      const updateData = req.body; // Updated data sent from the frontend
+
+      // Construct the query to find the event by ID
+      const query = { _id: new ObjectId(id) };
+
+      try {
+        // Update the event document with the new data
+        const result = await UpcomingEventsCollection.updateOne(query, {
+          $set: updateData,
+        });
+
+        // Check if the event was updated
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Event updated successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Event not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error updating the event:", error);
+        res.status(500).send({ message: "Error updating the event", error });
+      }
+    });
+
+    // Update Participant's State by applicantEmail
+    app.put(
+      "/Upcoming-Events/:eventId/participants/:applicantEmail",
+      async (req, res) => {
+        const { eventId, applicantEmail } = req.params; // Get the event ID and applicant's email from the request params
+        const { applicantState } = req.body; // Expecting only the updated applicant state in the request body
+
+        // Query to find the event and the specific participant by email
+        const query = {
+          _id: new ObjectId(eventId),
+          "ParticipantApplications.applicantEmail": applicantEmail,
+        };
+
+        // Update the applicant's state only
+        const update = {
+          $set: {
+            "ParticipantApplications.$.applicantState": applicantState, // Update only applicantState
+          },
+        };
+
+        try {
+          // Update the participant's application within the event document
+          const result = await UpcomingEventsCollection.updateOne(
+            query,
+            update
+          );
+
+          if (result.modifiedCount > 0) {
+            res
+              .status(200)
+              .send({ message: "Participant state updated successfully!" });
+          } else {
+            res
+              .status(404)
+              .send({ message: "Participant or Event not found." });
+          }
+        } catch (error) {
+          console.error("Error updating participant state:", error);
+          res
+            .status(500)
+            .send({ message: "Error updating participant state", error });
+        }
+      }
+    );
 
     // Delete an Upcoming Event by ID
     app.delete("/Upcoming-Events/:id", async (req, res) => {
@@ -817,6 +904,42 @@ async function run() {
         res.status(500).send({ message: "Error deleting the event", error });
       }
     });
+    // Delete a Participant
+    app.delete(
+      "/Upcoming-Events/:eventId/participants/:applicantEmail",
+      async (req, res) => {
+        const { eventId, applicantEmail } = req.params; // Use applicantEmail instead of participantId
+
+        const query = { _id: new ObjectId(eventId) };
+        const update = {
+          $pull: {
+            ParticipantApplications: { applicantEmail: applicantEmail }, // Remove participant by email
+          },
+        };
+
+        try {
+          const result = await UpcomingEventsCollection.updateOne(
+            query,
+            update
+          );
+
+          if (result.modifiedCount > 0) {
+            res
+              .status(200)
+              .send({ message: "Participant deleted successfully!" });
+          } else {
+            res
+              .status(404)
+              .send({ message: "Participant or Event not found." });
+          }
+        } catch (error) {
+          console.error("Error deleting participant:", error);
+          res
+            .status(500)
+            .send({ message: "Error deleting participant", error });
+        }
+      }
+    );
 
     // Courses API
     // Get Courses

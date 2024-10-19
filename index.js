@@ -944,9 +944,29 @@ async function run() {
     // Courses API
     // Get Courses
     app.get("/Courses", async (req, res) => {
-      const result = await CoursesCollection.find().toArray();
-      res.send(result);
+      const { postedBy, email } = req.query;
+
+      let query = {};
+
+      // If the postedBy parameter is provided, filter by postedBy
+      if (postedBy) {
+        query.postedBy = postedBy;
+      }
+
+      // If the email parameter is provided, filter by applicant email
+      if (email) {
+        query["applicants.applicantEmail"] = email;
+      }
+
+      try {
+        const result = await CoursesCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+        res.status(500).send("Error fetching courses");
+      }
     });
+
     // get Posed Courses by ID
     app.get("/Courses/:id", async (req, res) => {
       const id = req.params.id;
@@ -1001,6 +1021,34 @@ async function run() {
       res.send(result);
     });
 
+    // Update a Course by ID
+    app.put("/Courses/:id", async (req, res) => {
+      const id = req.params.id; // Get the course ID from the request params
+      const updateData = req.body; // Updated data sent from the frontend
+
+      // Construct the query to find the course by ID
+      const query = { _id: new ObjectId(id) };
+
+      try {
+        // Update the course document with the new data
+        const result = await CoursesCollection.updateOne(query, {
+          $set: updateData,
+        });
+
+        // Check if the course was updated
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Course updated successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Course not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error updating the course:", error);
+        res.status(500).send({ message: "Error updating the course", error });
+      }
+    });
+
     // Delete an Courses by ID
     app.delete("/Courses/:id", async (req, res) => {
       const id = req.params.id; // Get the event ID from the request parameters
@@ -1021,6 +1069,42 @@ async function run() {
       } catch (error) {
         console.error("Error deleting the event:", error);
         res.status(500).send({ message: "Error deleting the event", error });
+      }
+    });
+    // Delete a Participant by Email from a Specific Course
+    app.delete("/Courses/:id/participants/:email", async (req, res) => {
+      const courseId = req.params.id; // Course ID from the request params
+      const participantEmail = req.params.email; // Participant email from the request params
+
+      // Construct the query to find the course by ID
+      const query = { _id: new ObjectId(courseId) };
+
+      // Define the update to remove the participant with the given email from the applicants array
+      const update = {
+        $pull: {
+          applicants: { applicantEmail: participantEmail },
+        },
+      };
+
+      try {
+        // Update the course document by pulling the participant from the applicants array
+        const result = await CoursesCollection.updateOne(query, update);
+
+        // Check if a participant was removed
+        if (result.modifiedCount > 0) {
+          res
+            .status(200)
+            .send({ message: "Participant removed successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Participant not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error deleting the participant:", error);
+        res
+          .status(500)
+          .send({ message: "Error deleting the participant", error });
       }
     });
 

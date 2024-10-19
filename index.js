@@ -1111,8 +1111,18 @@ async function run() {
     // Mentorship API
     // Get Mentorship
     app.get("/Mentorship", async (req, res) => {
-      const result = await MentorshipCollection.find().toArray();
-      res.send(result);
+      const postedBy = req.query.postedBy; // Get the postedBy email from the query parameters
+
+      // If postedBy is provided, filter by the email; otherwise, return all mentorships
+      const query = postedBy ? { postedBy: postedBy } : {};
+
+      try {
+        const result = await MentorshipCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching mentorships: ", error);
+        res.status(500).send("Server error.");
+      }
     });
     // get Posed Mentorship by ID
     app.get("/Mentorship/:id", async (req, res) => {
@@ -1127,6 +1137,12 @@ async function run() {
       res.json({ count });
     });
 
+    // Post Mentorship
+    app.post("/Mentorship", async (req, res) => {
+      const request = req.body;
+      const result = await MentorshipCollection.insertOne(request);
+      res.send(result);
+    });
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Mentorship/:id/applyReview", async (req, res) => {
       const id = req.params.id; // Get the job ID from the request params
@@ -1196,6 +1212,37 @@ async function run() {
       }
     });
 
+    // Update a Mentorship by ID
+    app.put("/Mentorship/:id", async (req, res) => {
+      const id = req.params.id; // Get the mentorship ID from the request parameters
+      const updateData = req.body; // Get the updated data sent from the frontend
+
+      // Construct the query to find the mentorship by ID
+      const query = { _id: new ObjectId(id) };
+
+      // Define the update operation
+      const update = {
+        $set: updateData, // Set the new values based on the updateData object
+      };
+
+      try {
+        // Update the mentorship document with the new data
+        const result = await MentorshipCollection.updateOne(query, update);
+
+        // Check if the mentorship was updated
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Mentorship updated successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Mentorship not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error updating mentorship:", error);
+        res.status(500).send({ message: "Error updating mentorship", error });
+      }
+    });
+
     // Delete an Mentorship by ID
     app.delete("/Mentorship/:id", async (req, res) => {
       const id = req.params.id; // Get the event ID from the request parameters
@@ -1216,6 +1263,64 @@ async function run() {
       } catch (error) {
         console.error("Error deleting the event:", error);
         res.status(500).send({ message: "Error deleting the event", error });
+      }
+    });
+    // Delete a review by reviewerEmail from a specific mentorship post
+    app.delete("/Mentorship/reviews/:id", async (req, res) => {
+      const mentorshipId = req.params.id; // Get the mentorship post ID from the request params
+      const { reviewerEmail } = req.body; // Get the reviewer's email from the request body
+
+      try {
+        // Find the mentorship post and remove the review from the reviews array
+        const query = { _id: new ObjectId(mentorshipId) };
+        const update = {
+          $pull: {
+            reviews: { reviewerEmail }, // Remove the review where the reviewerEmail matches
+          },
+        };
+
+        const result = await MentorshipCollection.updateOne(query, update);
+
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Review deleted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Review not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error deleting the review:", error);
+        res.status(500).send({ message: "Error deleting the review", error });
+      }
+    });
+    // Delete an applicant by applicantEmail from a specific mentorship post
+    app.delete("/Mentorship/applicants/:id", async (req, res) => {
+      const mentorshipId = req.params.id; // Get the mentorship post ID from the request params
+      const { applicantEmail } = req.body; // Get the applicant's email from the request body
+
+      try {
+        // Find the mentorship post and remove the applicant from the applicant array
+        const query = { _id: new ObjectId(mentorshipId) };
+        const update = {
+          $pull: {
+            applicant: { applicantEmail }, // Remove the applicant where the applicantEmail matches
+          },
+        };
+
+        const result = await MentorshipCollection.updateOne(query, update);
+
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Applicant deleted successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Applicant not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error deleting the applicant:", error);
+        res
+          .status(500)
+          .send({ message: "Error deleting the applicant", error });
       }
     });
 

@@ -1325,11 +1325,24 @@ async function run() {
     });
 
     // Internship API
-    // Get Internship
+    // Get Internship by postedBy email
     app.get("/Internship", async (req, res) => {
-      const result = await InternshipCollection.find().toArray();
-      res.send(result);
+      const { postedBy } = req.query; // Get the postedBy query parameter
+
+      // If postedBy is provided, filter by that email, otherwise return all internships
+      let query = {};
+      if (postedBy) {
+        query.postedBy = postedBy; // Filter based on postedBy email
+      }
+
+      try {
+        const result = await InternshipCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Error fetching internships", error });
+      }
     });
+
     // get Posed Internship by ID
     app.get("/Internship/:id", async (req, res) => {
       const id = req.params.id;
@@ -1343,6 +1356,12 @@ async function run() {
       res.json({ count });
     });
 
+    // Post Internship
+    app.post("/Internship", async (req, res) => {
+      const request = req.body;
+      const result = await InternshipCollection.insertOne(request);
+      res.send(result);
+    });
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Internship/:id/apply", async (req, res) => {
       const id = req.params.id; // Get the job ID from the request params
@@ -1378,6 +1397,37 @@ async function run() {
       }
     });
 
+    // Update an Internship by ID
+    app.put("/Internship/:id", async (req, res) => {
+      const id = req.params.id; // Get the internship ID from the request parameters
+      const updateData = req.body; // Get the updated data sent from the frontend
+
+      // Construct the query to find the internship by ID
+      const query = { _id: new ObjectId(id) };
+
+      // Define the update operation
+      const update = {
+        $set: updateData, // Set the new values based on the updateData object
+      };
+
+      try {
+        // Update the internship document with the new data
+        const result = await InternshipCollection.updateOne(query, update);
+
+        // Check if the internship was updated successfully
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Internship updated successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Internship not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error updating internship:", error);
+        res.status(500).send({ message: "Error updating internship", error });
+      }
+    });
+
     // Delete an Internship by ID
     app.delete("/Internship/:id", async (req, res) => {
       const id = req.params.id; // Get the event ID from the request parameters
@@ -1398,6 +1448,45 @@ async function run() {
       } catch (error) {
         console.error("Error deleting the event:", error);
         res.status(500).send({ message: "Error deleting the event", error });
+      }
+    });
+    // Delete an Applicant from a Posted Internship by ID
+    app.delete("/Internship/applicants/:id", async (req, res) => {
+      const id = req.params.id; // Get the internship ID from the request parameters
+      const { applicantEmail } = req.body; // Get the applicant email from the request body
+
+      if (!applicantEmail) {
+        return res
+          .status(400)
+          .send({ message: "Applicant email is required." });
+      }
+
+      const query = { _id: new ObjectId(id) }; // Construct the query to find the internship by ID
+
+      // Define the update to pull the applicant from the applicants array
+      const update = {
+        $pull: {
+          applicants: { email: applicantEmail }, // Match by 'email' field, not 'applicantEmail'
+        },
+      };
+
+      try {
+        // Update the internship document by removing the applicant
+        const result = await InternshipCollection.updateOne(query, update);
+
+        // Check if the applicant was removed
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Applicant removed successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Internship not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error removing the applicant:", error);
+        res
+          .status(500)
+          .send({ message: "Error removing the applicant", error });
       }
     });
 

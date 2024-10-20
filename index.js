@@ -206,6 +206,28 @@ async function run() {
       const count = await PostedJobCollection.countDocuments();
       res.json({ count });
     });
+    // Get Jobs where the user has applied
+    app.get("/applied-jobs", async (req, res) => {
+      try {
+        const { email } = req.query; // Get the user's email from the query parameters
+        if (!email) {
+          return res.status(400).send({ message: "Email is required." });
+        }
+
+        // Query to find jobs where the user's email is in the PeopleApplied array
+        const query = {
+          "PeopleApplied.email": email,
+        };
+
+        // Fetch the jobs based on the constructed query
+        const result = await PostedJobCollection.find(query).toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching applied jobs:", error);
+        res.status(500).send("An error occurred while fetching applied jobs.");
+      }
+    });
 
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Posted-Job/:id/apply", async (req, res) => {
@@ -277,6 +299,39 @@ async function run() {
         console.error("Error updating the job:", error);
         res.status(500).send({
           message: "An error occurred while updating the job.",
+          error,
+        });
+      }
+    });
+
+    // Approve Posted Job by ID
+    app.patch("/Posted-Job/:id/approve", async (req, res) => {
+      const jobId = req.params.id; // Get the job ID from the request params
+
+      // Construct the query to find the job by ID
+      const query = { _id: new ObjectId(jobId) };
+
+      // Define the update to set the job's state to "Approved"
+      const update = {
+        $set: { state: "Approved" },
+      };
+
+      try {
+        // Perform the update in the database
+        const result = await PostedJobCollection.updateOne(query, update);
+
+        // Check if the update was successful
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: "Job approved successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Job not found or already approved." });
+        }
+      } catch (error) {
+        console.error("Error approving job:", error);
+        res.status(500).send({
+          message: "An error occurred while approving the job.",
           error,
         });
       }
@@ -389,6 +444,28 @@ async function run() {
       const count = await PostedGigCollection.countDocuments();
       res.json({ count });
     });
+    // Get all gigs a user has applied for using their biderEmail
+    app.get("/applied-gigs", async (req, res) => {
+      const { biderEmail } = req.query; // Get 'biderEmail' from query parameters
+
+      if (!biderEmail) {
+        return res
+          .status(400)
+          .send({ message: "biderEmail query parameter is required" });
+      }
+
+      try {
+        // Find all gigs where the `peopleBided.biderEmail` matches the provided `biderEmail`
+        const appliedGigs = await PostedGigCollection.find({
+          "peopleBided.biderEmail": biderEmail, // Query inside the `peopleBided` array
+        }).toArray();
+
+        res.send(appliedGigs); // Return the gigs in the response
+      } catch (error) {
+        console.error("Error fetching applied gigs:", error);
+        res.status(500).send({ message: "Error fetching applied gigs", error });
+      }
+    });
 
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Posted-Gig/:id/apply", async (req, res) => {
@@ -460,6 +537,51 @@ async function run() {
         console.error("Error updating the job:", error);
         res.status(500).send({
           message: "An error occurred while updating the job.",
+          error,
+        });
+      }
+    });
+
+    // Update Posted Gig State and Rating by ID
+    app.patch("/Posted-Gig/:id", async (req, res) => {
+      const gigId = req.params.id; // Get the gig ID from the request parameters
+      const { state, rating } = req.body; // Destructure state and rating from the request body
+
+      // Construct the query to find the gig by its ID
+      const query = { _id: new ObjectId(gigId) };
+
+      // Create an update object
+      const update = {};
+
+      // Only set the fields if they are provided
+      if (state) {
+        update.state = state;
+      }
+      if (rating) {
+        update.rating = rating;
+      }
+
+      // Update the gig document
+      try {
+        const result = await PostedGigCollection.updateOne(query, {
+          $set: update,
+        });
+
+        // Check if any documents were modified
+        if (result.modifiedCount > 0) {
+          res.status(200).send({
+            message: "Gig updated successfully!",
+            updatedFields: update,
+          });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Gig not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error updating gig:", error);
+        res.status(500).send({
+          message: "An error occurred while updating the gig.",
           error,
         });
       }
@@ -1533,10 +1655,24 @@ async function run() {
     });
 
     // Testimonials API
-    // Get Testimonials
+    // Get Testimonials, with optional query by postedBy
     app.get("/Testimonials", async (req, res) => {
-      const result = await TestimonialsCollection.find().toArray();
-      res.send(result);
+      const { postedBy } = req.query; // Extract 'postedBy' from query parameters
+
+      let query = {};
+
+      // If 'postedBy' is present in the query, add it to the filter
+      if (postedBy) {
+        query.postedBy = postedBy;
+      }
+
+      try {
+        const result = await TestimonialsCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching testimonials:", error);
+        res.status(500).send("Error fetching testimonials");
+      }
     });
     // Total Posted Testimonials Count API
     app.get("/TestimonialsCount", async (req, res) => {
@@ -1544,6 +1680,47 @@ async function run() {
       res.json({ count });
     });
 
+    // Post new Testimonials
+    app.post("/Testimonials", async (req, res) => {
+      const request = req.body;
+      const result = await TestimonialsCollection.insertOne(request);
+      res.send(result);
+    });
+
+    // Update an existing Testimonial by ID
+    app.put("/Testimonials/:id", async (req, res) => {
+      const id = req.params.id; // Get the testimonial ID from the request parameters
+      const updatedData = req.body; // Get the updated data from the request body
+
+      const query = { _id: new ObjectId(id) }; // Construct the query to find the testimonial by ID
+      const updateDocument = {
+        $set: updatedData, // Update the testimonial with the new data
+      };
+
+      try {
+        // Update the testimonial document in the collection
+        const result = await TestimonialsCollection.updateOne(
+          query,
+          updateDocument
+        );
+
+        // Check if the testimonial was updated
+        if (result.modifiedCount > 0) {
+          res
+            .status(200)
+            .send({ message: "Testimonial updated successfully!" });
+        } else {
+          res
+            .status(404)
+            .send({ message: "Testimonial not found or no changes made." });
+        }
+      } catch (error) {
+        console.error("Error updating the testimonial:", error);
+        res
+          .status(500)
+          .send({ message: "Error updating the testimonial", error });
+      }
+    });
     // Delete an Testimonials by ID
     app.delete("/Testimonials/:id", async (req, res) => {
       const id = req.params.id; // Get the event ID from the request parameters
@@ -1591,8 +1768,24 @@ async function run() {
     // Blogs API
     // Get Blogs
     app.get("/Blogs", async (req, res) => {
-      const result = await BlogsCollection.find().toArray();
-      res.send(result);
+      const { postedBy } = req.query; // Extract the postedBy query parameter
+
+      try {
+        let result;
+
+        if (postedBy) {
+          // If postedBy is provided, filter the results
+          result = await BlogsCollection.find({ postedBy }).toArray();
+        } else {
+          // If not provided, return all blogs
+          result = await BlogsCollection.find().toArray();
+        }
+
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching blogs:", error);
+        res.status(500).send("Internal Server Error");
+      }
     });
     // get Posed Blogs by ID
     app.get("/Blogs/:id", async (req, res) => {
@@ -1689,6 +1882,31 @@ async function run() {
       const request = req.body;
       const result = await BlogsCollection.insertOne(request);
       res.send(result);
+    });
+
+    // Update Blog by ID
+    app.put("/Blogs/:id", async (req, res) => {
+      const id = req.params.id; // Get the blog ID from the URL params
+      const updatedBlog = req.body; // Blog update data from the request body
+
+      try {
+        const query = { _id: new ObjectId(id) };
+        const update = {
+          $set: updatedBlog, // Update the blog with the new data
+        };
+
+        // Update the blog in the database
+        const result = await BlogsCollection.updateOne(query, update);
+
+        if (result.matchedCount > 0) {
+          res.status(200).json({ message: "Blog updated successfully" });
+        } else {
+          res.status(404).json({ message: "Blog not found" });
+        }
+      } catch (error) {
+        console.error("Error updating blog:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
     });
 
     // Delete an Blogs by ID

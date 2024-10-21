@@ -29,7 +29,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     // Connection
     const UsersCollection = client.db("Master-Job-Shop").collection("Users");
@@ -206,28 +206,7 @@ async function run() {
       const count = await PostedJobCollection.countDocuments();
       res.json({ count });
     });
-    // Get Jobs where the user has applied
-    app.get("/applied-jobs", async (req, res) => {
-      try {
-        const { email } = req.query; // Get the user's email from the query parameters
-        if (!email) {
-          return res.status(400).send({ message: "Email is required." });
-        }
-
-        // Query to find jobs where the user's email is in the PeopleApplied array
-        const query = {
-          "PeopleApplied.email": email,
-        };
-
-        // Fetch the jobs based on the constructed query
-        const result = await PostedJobCollection.find(query).toArray();
-
-        res.send(result);
-      } catch (error) {
-        console.error("Error fetching applied jobs:", error);
-        res.status(500).send("An error occurred while fetching applied jobs.");
-      }
-    });
+    
 
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Posted-Job/:id/apply", async (req, res) => {
@@ -443,28 +422,6 @@ async function run() {
     app.get("/PostedGigCount", async (req, res) => {
       const count = await PostedGigCollection.countDocuments();
       res.json({ count });
-    });
-    // Get all gigs a user has applied for using their biderEmail
-    app.get("/applied-gigs", async (req, res) => {
-      const { biderEmail } = req.query; // Get 'biderEmail' from query parameters
-
-      if (!biderEmail) {
-        return res
-          .status(400)
-          .send({ message: "biderEmail query parameter is required" });
-      }
-
-      try {
-        // Find all gigs where the `peopleBided.biderEmail` matches the provided `biderEmail`
-        const appliedGigs = await PostedGigCollection.find({
-          "peopleBided.biderEmail": biderEmail, // Query inside the `peopleBided` array
-        }).toArray();
-
-        res.send(appliedGigs); // Return the gigs in the response
-      } catch (error) {
-        console.error("Error fetching applied gigs:", error);
-        res.status(500).send({ message: "Error fetching applied gigs", error });
-      }
     });
 
     // Apply for a Posted Job (update PeopleApplied array)

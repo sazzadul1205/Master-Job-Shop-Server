@@ -8,7 +8,11 @@ const port = process.env.PORT || 5000;
 // Middle Ware
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://master-job-shop.web.app",
+      "https://master-job-shop.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
@@ -206,7 +210,6 @@ async function run() {
       const count = await PostedJobCollection.countDocuments();
       res.json({ count });
     });
-    
 
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Posted-Job/:id/apply", async (req, res) => {

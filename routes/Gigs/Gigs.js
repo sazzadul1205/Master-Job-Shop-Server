@@ -119,4 +119,150 @@ app.post("/Gigs", async (req, res) => {
   }
 });
 
+// Update a Posted Gig
+app.put("/Gigs/:id", async (req, res) => {
+  const id = req.params.id;
+  const updatedData = req.body;
+
+  if (!id || !updatedData || typeof updatedData !== "object") {
+    return res.status(400).send({
+      message: "Invalid request. Gig ID and update data are required.",
+    });
+  }
+
+  try {
+    const query = { _id: new ObjectId(id) };
+    const update = { $set: updatedData };
+
+    const result = await PostedGigCollection.updateOne(query, update);
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ message: "Gig not found." });
+    }
+
+    if (result.modifiedCount === 0) {
+      return res
+        .status(200)
+        .send({ message: "No changes were made to the gig." });
+    }
+
+    res.status(200).send({ message: "Gig updated successfully!" });
+  } catch (error) {
+    console.error("Error updating the gig:", error);
+    res.status(500).send({
+      message: "An error occurred while updating the gig.",
+      error: error.message,
+    });
+  }
+});
+
+// Update a Posted Gig's State or Rating
+app.patch("/Gigs/:id", async (req, res) => {
+  const gigId = req.params.id;
+  const { state, rating } = req.body;
+
+  if (!state && rating === undefined) {
+    return res.status(400).send({
+      message: "At least one of 'state' or 'rating' must be provided.",
+    });
+  }
+
+  let updateFields = {};
+  if (state) updateFields.state = state;
+  if (rating !== undefined) updateFields.rating = rating;
+
+  try {
+    const query = { _id: new ObjectId(gigId) };
+    const update = { $set: updateFields };
+
+    const result = await PostedGigCollection.updateOne(query, update);
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ message: "Gig not found." });
+    }
+
+    if (result.modifiedCount === 0) {
+      return res
+        .status(200)
+        .send({ message: "No changes were made to the gig." });
+    }
+
+    res.status(200).send({
+      message: "Gig updated successfully!",
+      updatedFields: updateFields,
+    });
+  } catch (error) {
+    console.error("Error updating gig:", error);
+    res.status(500).send({
+      message: "An error occurred while updating the gig.",
+      error: error.message,
+    });
+  }
+});
+
+// Delete a specific bidder from the peopleBided array
+app.delete("/Gigs/Bidder/:id", async (req, res) => {
+  const { id } = req.params;
+  const { email } = req.body;
+
+  // Input validation
+  if (!id || !email) {
+    return res.status(400).send({
+      message: "Both gig ID and bidder email are required.",
+    });
+  }
+
+  try {
+    const query = { _id: new ObjectId(id) };
+    const update = {
+      $pull: {
+        peopleBided: { biderEmail: email },
+      },
+    };
+
+    const result = await PostedGigCollection.updateOne(query, update);
+
+    if (result.modifiedCount > 0) {
+      res.status(200).send({ message: "Bidder removed successfully." });
+    } else {
+      res
+        .status(404)
+        .send({ message: "Gig not found or bidder does not exist." });
+    }
+  } catch (error) {
+    console.error("Error removing bidder:", error);
+    res.status(500).send({
+      message: "An error occurred while removing the bidder.",
+      error: error.message,
+    });
+  }
+});
+
+// Delete a single Posted Gig by ID
+app.delete("/Gigs/:id", async (req, res) => {
+  const { id } = req.params;
+
+  // Validate ID
+  if (!id) {
+    return res.status(400).send({ message: "Gig ID is required." });
+  }
+
+  try {
+    const query = { _id: new ObjectId(id) };
+    const result = await PostedGigCollection.deleteOne(query);
+
+    if (result.deletedCount > 0) {
+      res.status(200).send({ message: "Gig deleted successfully!" });
+    } else {
+      res.status(404).send({ message: "Gig not found with the provided ID." });
+    }
+  } catch (error) {
+    console.error("Error deleting gig:", error);
+    res.status(500).send({
+      message: "An error occurred while deleting the gig.",
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;

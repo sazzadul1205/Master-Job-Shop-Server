@@ -469,7 +469,7 @@ async function run() {
         res.status(500).send({ message: "Error applying for the job", error });
       }
     });
-    
+
     // Post Home Banners
     app.post("/Posted-Gig", async (req, res) => {
       const request = req.body;
@@ -593,6 +593,7 @@ async function run() {
           .send({ message: "An error occurred while deleting gigs.", error });
       }
     });
+    
     // Delete a specific applicant from the peopleBided array
     app.delete("/Posted-Gig/:id/bidder", async (req, res) => {
       const gigId = req.params.id; // Get the gig ID from the request parameters

@@ -69,7 +69,7 @@ async function run() {
     const InternshipCollection = client
       .db("Master-Job-Shop")
       .collection("Internship");
-      
+
     const NewsLetterCollection = client
       .db("Master-Job-Shop")
       .collection("NewsLetter");
@@ -77,9 +77,11 @@ async function run() {
     const TestimonialsCollection = client
       .db("Master-Job-Shop")
       .collection("Testimonials");
+
     const WhyChooseUsCollection = client
       .db("Master-Job-Shop")
       .collection("WhyChooseUs");
+      
     const HomeBannerCollection = client
       .db("Master-Job-Shop")
       .collection("Home-Banner");
@@ -1721,6 +1723,7 @@ async function run() {
           .send({ message: "Error updating the testimonial", error });
       }
     });
+
     // Delete an Testimonials by ID
     app.delete("/Testimonials/:id", async (req, res) => {
       const id = req.params.id; // Get the event ID from the request parameters
@@ -1757,6 +1760,7 @@ async function run() {
       const result = await AboutUsCollection.find().toArray();
       res.send(result);
     });
+
     // get Posed AboutUs by ID
     app.get("/AboutUs/:id", async (req, res) => {
       const id = req.params.id;

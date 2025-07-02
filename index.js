@@ -37,12 +37,15 @@ async function run() {
 
     // Connection
     const UsersCollection = client.db("Master-Job-Shop").collection("Users");
+
     const PostedJobCollection = client
       .db("Master-Job-Shop")
       .collection("Posted-Job");
+
     const PostedGigCollection = client
       .db("Master-Job-Shop")
       .collection("Posted-Gig");
+      
     const CompanyProfilesCollection = client
       .db("Master-Job-Shop")
       .collection("Company-Profiles");
@@ -593,7 +596,7 @@ async function run() {
           .send({ message: "An error occurred while deleting gigs.", error });
       }
     });
-    
+
     // Delete a specific applicant from the peopleBided array
     app.delete("/Posted-Gig/:id/bidder", async (req, res) => {
       const gigId = req.params.id; // Get the gig ID from the request parameters

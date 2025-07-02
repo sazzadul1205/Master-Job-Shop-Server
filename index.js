@@ -49,6 +49,7 @@ async function run() {
     const CompanyProfilesCollection = client
       .db("Master-Job-Shop")
       .collection("Company-Profiles");
+
     const SalaryInsightCollection = client
       .db("Master-Job-Shop")
       .collection("Salary-Insight");
@@ -763,6 +764,7 @@ async function run() {
       const result = await SalaryInsightCollection.find().toArray();
       res.send(result);
     });
+    
     // get Posed Salary Insight by ID
     app.get("/Salary-Insight/:id", async (req, res) => {
       const id = req.params.id;

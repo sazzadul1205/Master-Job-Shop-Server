@@ -3,7 +3,7 @@ const router = express.Router();
 const { client } = require("../config/db");
 const { ObjectId } = require("mongodb");
 
-const PostedJobCollection = client
+const JobsCollection = client
   .db("Master-Job-Shop")
   .collection("Posted-Job");
 
@@ -33,14 +33,14 @@ app.get("/Jobs", async (req, res) => {
 
     // Determine whether to fetch single or multiple results
     if (id) {
-      const job = await PostedJobCollection.findOne(query);
+      const job = await JobsCollection.findOne(query);
       if (!job) {
         return res.status(404).json({ message: "Job not found." });
       }
       return res.status(200).json(job); // Return object directly
     }
 
-    const jobs = await PostedJobCollection.find(query).toArray();
+    const jobs = await JobsCollection.find(query).toArray();
 
     if (jobs.length === 0) {
       return res.status(404).json({ message: "No jobs found." });
@@ -61,7 +61,7 @@ app.get("/Jobs", async (req, res) => {
 app.get("/JobsCount", async (req, res) => {
   try {
     // Optional: extend this to filter by companyCode, email, etc.
-    const count = await PostedJobCollection.countDocuments();
+    const count = await JobsCollection.countDocuments();
     res.status(200).json({ count });
   } catch (error) {
     console.error("Error counting posted jobs:", error);
@@ -70,7 +70,7 @@ app.get("/JobsCount", async (req, res) => {
 });
 
 // Apply for a Posted Job (update PeopleApplied array)
-app.post("/Job/Apply/:id", async (req, res) => {
+app.post("/Jobs/Apply/:id", async (req, res) => {
   const { id } = req.params;
   const applicantData = req.body;
 
@@ -96,7 +96,7 @@ app.post("/Job/Apply/:id", async (req, res) => {
       },
     };
 
-    const result = await PostedJobCollection.updateOne(query, update);
+    const result = await JobsCollection.updateOne(query, update);
 
     if (result.modifiedCount > 0) {
       return res
@@ -116,7 +116,7 @@ app.post("/Job/Apply/:id", async (req, res) => {
 });
 
 // POST: Create a new posted job
-app.post("/Job", async (req, res) => {
+app.post("/Jobs", async (req, res) => {
   const jobData = req.body;
 
   // Basic validation
@@ -132,7 +132,7 @@ app.post("/Job", async (req, res) => {
   }
 
   try {
-    const result = await PostedJobCollection.insertOne(jobData);
+    const result = await JobsCollection.insertOne(jobData);
 
     if (result.insertedId) {
       return res.status(201).json({
@@ -152,7 +152,7 @@ app.post("/Job", async (req, res) => {
 });
 
 // Approve Posted Job by ID
-app.patch("/Job/Approve/:id", async (req, res) => {
+app.patch("/Jobs/Approve/:id", async (req, res) => {
   const jobId = req.params.id;
 
   // Validate ObjectId format
@@ -164,7 +164,7 @@ app.patch("/Job/Approve/:id", async (req, res) => {
   const update = { $set: { state: "Approved" } };
 
   try {
-    const result = await PostedJobCollection.updateOne(query, update);
+    const result = await JobsCollection.updateOne(query, update);
 
     if (result.matchedCount === 0) {
       return res.status(404).json({ message: "Job not found." });
@@ -188,7 +188,7 @@ app.patch("/Job/Approve/:id", async (req, res) => {
 });
 
 // Update Posted Job by ID
-app.put("/Job/:id", async (req, res) => {
+app.put("/Jobs/:id", async (req, res) => {
   const id = req.params.id;
   const updatedData = req.body;
 
@@ -206,7 +206,7 @@ app.put("/Job/:id", async (req, res) => {
   const update = { $set: updatedData };
 
   try {
-    const result = await PostedJobCollection.updateOne(query, update);
+    const result = await JobsCollection.updateOne(query, update);
 
     if (result.matchedCount === 0) {
       return res.status(404).json({ message: "Job not found." });
@@ -229,7 +229,7 @@ app.put("/Job/:id", async (req, res) => {
 });
 
 // Delete a single applicant from PeopleApplied by job ID and applicant email
-app.delete("/Job/Applicant/:id/", async (req, res) => {
+app.delete("/Jobs/Applicant/:id/", async (req, res) => {
   const jobId = req.params.id;
   const { email } = req.body;
 
@@ -247,7 +247,7 @@ app.delete("/Job/Applicant/:id/", async (req, res) => {
       $pull: { PeopleApplied: { email } },
     };
 
-    const result = await PostedJobCollection.updateOne(query, update);
+    const result = await JobsCollection.updateOne(query, update);
 
     if (result.modifiedCount > 0) {
       return res
@@ -266,7 +266,7 @@ app.delete("/Job/Applicant/:id/", async (req, res) => {
 });
 
 // Delete a single Posted Job by ID
-app.delete("/Job/:id", async (req, res) => {
+app.delete("/Jobs/:id", async (req, res) => {
   const jobId = req.params.id;
 
   // Validate ID
@@ -275,7 +275,7 @@ app.delete("/Job/:id", async (req, res) => {
   }
 
   try {
-    const result = await PostedJobCollection.deleteOne({
+    const result = await JobsCollection.deleteOne({
       _id: new ObjectId(jobId),
     });
 

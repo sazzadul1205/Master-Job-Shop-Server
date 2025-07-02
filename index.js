@@ -360,7 +360,7 @@ async function run() {
           .send({ message: "An error occurred while deleting jobs.", error });
       }
     });
-    
+
     // Delete a single applicant from PeopleApplied
     app.delete("/Posted-Job/:id/applicant", async (req, res) => {
       const jobId = req.params.id; // Get the job ID from the request parameters
@@ -420,6 +420,7 @@ async function run() {
         res.status(500).send({ message: "Error fetching posted gigs", error });
       }
     });
+
     // get Posed Posted Gig by ID
     app.get("/Posted-Gig/:id", async (req, res) => {
       const id = req.params.id;
@@ -427,6 +428,7 @@ async function run() {
       const result = await PostedGigCollection.findOne(query);
       res.send(result);
     });
+
     // Total Posted Gig Count API
     app.get("/PostedGigCount", async (req, res) => {
       const count = await PostedGigCollection.countDocuments();
@@ -467,6 +469,7 @@ async function run() {
         res.status(500).send({ message: "Error applying for the job", error });
       }
     });
+    
     // Post Home Banners
     app.post("/Posted-Gig", async (req, res) => {
       const request = req.body;

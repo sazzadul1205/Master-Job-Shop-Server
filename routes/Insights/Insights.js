@@ -33,4 +33,68 @@ app.get("/Insights", async (req, res) => {
   }
 });
 
+// Total Posted Salary Insight Count API
+app.get("/InsightsCount", async (req, res) => {
+  try {
+    const count = await SalaryInsightCollection.countDocuments();
+    res.status(200).json({ count });
+  } catch (error) {
+    console.error("Error counting salary insights:", error);
+    res.status(500).send({
+      message: "Failed to retrieve salary insight count.",
+      error,
+    });
+  }
+});
+
+// Post Salary Insight
+app.post("/Insights", async (req, res) => {
+  try {
+    const request = req.body;
+
+    if (!request || Object.keys(request).length === 0) {
+      return res.status(400).send({ message: "Request body is required." });
+    }
+
+    const result = await SalaryInsightCollection.insertOne(request);
+
+    res.status(201).send({
+      message: "Salary Insight posted successfully.",
+      insertedId: result.insertedId,
+    });
+  } catch (error) {
+    console.error("Error posting salary insight:", error);
+    res.status(500).send({
+      message: "Failed to post Salary Insight.",
+      error,
+    });
+  }
+});
+
+// Delete a single Salary Insight by ID
+app.delete("/Insights/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send({ message: "Invalid ID format." });
+    }
+
+    const query = { _id: new ObjectId(id) };
+    const result = await SalaryInsightCollection.deleteOne(query);
+
+    if (result.deletedCount === 1) {
+      res.status(200).send({ message: "Salary Insight deleted successfully." });
+    } else {
+      res.status(404).send({ message: "Salary Insight not found." });
+    }
+  } catch (error) {
+    console.error("Error deleting salary insight:", error);
+    res.status(500).send({
+      message: "Failed to delete Salary Insight.",
+      error,
+    });
+  }
+});
+
 module.exports = router;

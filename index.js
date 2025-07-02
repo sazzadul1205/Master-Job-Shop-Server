@@ -764,7 +764,7 @@ async function run() {
       const result = await SalaryInsightCollection.find().toArray();
       res.send(result);
     });
-    
+
     // get Posed Salary Insight by ID
     app.get("/Salary-Insight/:id", async (req, res) => {
       const id = req.params.id;
@@ -772,6 +772,7 @@ async function run() {
       const result = await SalaryInsightCollection.findOne(query);
       res.send(result);
     });
+
     // Total Posted Salary Insight Count API
     app.get("/SalaryInsightCount", async (req, res) => {
       const count = await SalaryInsightCollection.countDocuments();
@@ -805,6 +806,7 @@ async function run() {
         res.status(500).send({ message: "Failed to delete Salary Insight." });
       }
     });
+    
     // Delete multiple Salary Insights by IDs
     app.delete("/Salary-Insight/delete", async (req, res) => {
       try {

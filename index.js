@@ -53,9 +53,11 @@ async function run() {
     const SalaryInsightCollection = client
       .db("Master-Job-Shop")
       .collection("Salary-Insight");
+
     const UpcomingEventsCollection = client
       .db("Master-Job-Shop")
       .collection("Upcoming-Events");
+
     const CoursesCollection = client
       .db("Master-Job-Shop")
       .collection("Courses");
@@ -806,7 +808,7 @@ async function run() {
         res.status(500).send({ message: "Failed to delete Salary Insight." });
       }
     });
-    
+
     // Delete multiple Salary Insights by IDs
     app.delete("/Salary-Insight/delete", async (req, res) => {
       try {
@@ -1005,6 +1007,7 @@ async function run() {
         res.status(500).send({ message: "Error deleting the event", error });
       }
     });
+    
     // Delete a Participant
     app.delete(
       "/Upcoming-Events/:eventId/participants/:applicantEmail",

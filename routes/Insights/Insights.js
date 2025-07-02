@@ -18,7 +18,7 @@ app.get("/Insights", async (req, res) => {
       query._id = new ObjectId(id);
     }
 
-    const result = await SalaryInsightCollection.find(query).toArray();
+    const result = await InsightsCollection.find(query).toArray();
 
     if (result.length === 1) {
       res.send(result[0]); // Send single object
@@ -36,7 +36,7 @@ app.get("/Insights", async (req, res) => {
 // Total Posted Salary Insight Count API
 app.get("/InsightsCount", async (req, res) => {
   try {
-    const count = await SalaryInsightCollection.countDocuments();
+    const count = await InsightsCollection.countDocuments();
     res.status(200).json({ count });
   } catch (error) {
     console.error("Error counting salary insights:", error);
@@ -56,7 +56,7 @@ app.post("/Insights", async (req, res) => {
       return res.status(400).send({ message: "Request body is required." });
     }
 
-    const result = await SalaryInsightCollection.insertOne(request);
+    const result = await InsightsCollection.insertOne(request);
 
     res.status(201).send({
       message: "Salary Insight posted successfully.",
@@ -81,7 +81,7 @@ app.delete("/Insights/:id", async (req, res) => {
     }
 
     const query = { _id: new ObjectId(id) };
-    const result = await SalaryInsightCollection.deleteOne(query);
+    const result = await InsightsCollection.deleteOne(query);
 
     if (result.deletedCount === 1) {
       res.status(200).send({ message: "Salary Insight deleted successfully." });

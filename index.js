@@ -81,13 +81,15 @@ async function run() {
     const WhyChooseUsCollection = client
       .db("Master-Job-Shop")
       .collection("WhyChooseUs");
-      
+
     const HomeBannerCollection = client
       .db("Master-Job-Shop")
       .collection("Home-Banner");
+
     const AboutUsCollection = client
       .db("Master-Job-Shop")
       .collection("AboutUs");
+
     const BlogsCollection = client.db("Master-Job-Shop").collection("Blogs");
 
     // Log
@@ -1791,6 +1793,7 @@ async function run() {
         res.status(500).send("Internal Server Error");
       }
     });
+
     // get Posed Blogs by ID
     app.get("/Blogs/:id", async (req, res) => {
       const id = req.params.id;
@@ -1798,6 +1801,7 @@ async function run() {
       const result = await BlogsCollection.findOne(query);
       res.send(result);
     });
+
     // Total Posted Blogs Count API
     app.get("/BlogsCount", async (req, res) => {
       const count = await BlogsCollection.countDocuments();
@@ -1881,6 +1885,7 @@ async function run() {
         res.status(500).json({ message: "Internal server error" });
       }
     });
+    
     // Post Blogs
     app.post("/Blogs", async (req, res) => {
       const request = req.body;

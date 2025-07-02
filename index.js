@@ -122,11 +122,13 @@ async function run() {
         res.send(result);
       }
     });
+
     // Total Users Count API
     app.get("/UsersCount", async (req, res) => {
       const count = await UsersCollection.countDocuments();
       res.json({ count });
     });
+
     // Post new Users
     app.post("/Users", async (req, res) => {
       const request = req.body;
@@ -198,6 +200,7 @@ async function run() {
         res.status(500).send("An error occurred while fetching jobs.");
       }
     });
+
     // get Posed Posted Job by ID
     app.get("/Posted-Job/:id", async (req, res) => {
       const id = req.params.id;
@@ -205,6 +208,7 @@ async function run() {
       const result = await PostedJobCollection.findOne(query);
       res.send(result);
     });
+    
     // Total Posted Jobs Count API
     app.get("/PostedJobCount", async (req, res) => {
       const count = await PostedJobCollection.countDocuments();

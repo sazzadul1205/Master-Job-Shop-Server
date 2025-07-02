@@ -65,6 +65,7 @@ async function run() {
     const MentorshipCollection = client
       .db("Master-Job-Shop")
       .collection("Mentorship");
+
     const InternshipCollection = client
       .db("Master-Job-Shop")
       .collection("Internship");
@@ -1178,7 +1179,7 @@ async function run() {
         res.status(500).send({ message: "Error deleting the event", error });
       }
     });
-    
+
     // Delete a Participant by Email from a Specific Course
     app.delete("/Courses/:id/participants/:email", async (req, res) => {
       const courseId = req.params.id; // Course ID from the request params
@@ -1232,6 +1233,7 @@ async function run() {
         res.status(500).send("Server error.");
       }
     });
+
     // get Posed Mentorship by ID
     app.get("/Mentorship/:id", async (req, res) => {
       const id = req.params.id;
@@ -1239,6 +1241,7 @@ async function run() {
       const result = await MentorshipCollection.findOne(query);
       res.send(result);
     });
+
     // Total Posted Mentorship Count API
     app.get("/MentorshipCount", async (req, res) => {
       const count = await MentorshipCollection.countDocuments();
@@ -1251,6 +1254,7 @@ async function run() {
       const result = await MentorshipCollection.insertOne(request);
       res.send(result);
     });
+
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Mentorship/:id/applyReview", async (req, res) => {
       const id = req.params.id; // Get the job ID from the request params
@@ -1285,6 +1289,7 @@ async function run() {
         res.status(500).send({ message: "Error applying for the job", error });
       }
     });
+
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Mentorship/:id/applyApplicant", async (req, res) => {
       const id = req.params.id; // Get the job ID from the request params
@@ -1373,6 +1378,7 @@ async function run() {
         res.status(500).send({ message: "Error deleting the event", error });
       }
     });
+
     // Delete a review by reviewerEmail from a specific mentorship post
     app.delete("/Mentorship/reviews/:id", async (req, res) => {
       const mentorshipId = req.params.id; // Get the mentorship post ID from the request params
@@ -1401,6 +1407,7 @@ async function run() {
         res.status(500).send({ message: "Error deleting the review", error });
       }
     });
+    
     // Delete an applicant by applicantEmail from a specific mentorship post
     app.delete("/Mentorship/applicants/:id", async (req, res) => {
       const mentorshipId = req.params.id; // Get the mentorship post ID from the request params

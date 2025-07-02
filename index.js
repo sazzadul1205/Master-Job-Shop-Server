@@ -69,9 +69,11 @@ async function run() {
     const InternshipCollection = client
       .db("Master-Job-Shop")
       .collection("Internship");
+      
     const NewsLetterCollection = client
       .db("Master-Job-Shop")
       .collection("NewsLetter");
+
     const TestimonialsCollection = client
       .db("Master-Job-Shop")
       .collection("Testimonials");
@@ -1567,7 +1569,7 @@ async function run() {
         res.status(500).send({ message: "Error deleting the event", error });
       }
     });
-    
+
     // Delete an Applicant from a Posted Internship by ID
     app.delete("/Internship/applicants/:id", async (req, res) => {
       const id = req.params.id; // Get the internship ID from the request parameters
@@ -1614,6 +1616,7 @@ async function run() {
       const result = await NewsLetterCollection.find().toArray();
       res.send(result);
     });
+
     // Total Posted NewsLetter Count API
     app.get("/NewsLetterCount", async (req, res) => {
       const count = await NewsLetterCollection.countDocuments();
@@ -1670,6 +1673,7 @@ async function run() {
         res.status(500).send("Error fetching testimonials");
       }
     });
+
     // Total Posted Testimonials Count API
     app.get("/TestimonialsCount", async (req, res) => {
       const count = await TestimonialsCollection.countDocuments();

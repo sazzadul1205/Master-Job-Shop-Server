@@ -662,6 +662,7 @@ async function run() {
       const result = await CompanyProfilesCollection.findOne(query);
       res.send(result);
     });
+
     // Get only Company Names and Codes
     app.get("/Company-Profiles-Names-Codes", async (req, res) => {
       try {
@@ -677,6 +678,7 @@ async function run() {
           .send({ message: "Failed to fetch company names and codes", error });
       }
     });
+    
     // Total Posted Company Profile Count API
     app.get("/CompanyProfilesCount", async (req, res) => {
       const count = await CompanyProfilesCollection.countDocuments();

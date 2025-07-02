@@ -26,7 +26,7 @@ app.get("/Events", async (req, res) => {
       query.postedBy = postedBy;
     }
 
-    const result = await UpcomingEventsCollection.find(query).toArray();
+    const result = await EventsCollection.find(query).toArray();
 
     if (result.length === 0) {
       return res.status(404).send({ message: "No matching event(s) found." });
@@ -47,7 +47,7 @@ app.get("/Events", async (req, res) => {
 // Get Total Count of Events
 app.get("/EventsCount", async (req, res) => {
   try {
-    const count = await UpcomingEventsCollection.estimatedDocumentCount();
+    const count = await EventsCollection.estimatedDocumentCount();
     res.status(200).json({ count });
   } catch (error) {
     console.error("Error counting upcoming events:", error);
@@ -79,7 +79,7 @@ app.post("/Events/Apply/:id", async (req, res) => {
   };
 
   try {
-    const result = await UpcomingEventsCollection.updateOne(query, update);
+    const result = await EventsCollection.updateOne(query, update);
 
     if (result.modifiedCount > 0) {
       res.status(200).send({ message: "Application submitted successfully." });
@@ -104,7 +104,7 @@ app.post("/Events", async (req, res) => {
   }
 
   try {
-    const result = await UpcomingEventsCollection.insertOne(eventData);
+    const result = await EventsCollection.insertOne(eventData);
     res.status(201).send({
       message: "Upcoming event created successfully.",
       insertedId: result.insertedId,
@@ -132,7 +132,7 @@ app.put("/Events/:id", async (req, res) => {
   const update = { $set: updateData };
 
   try {
-    const result = await UpcomingEventsCollection.updateOne(query, update);
+    const result = await EventsCollection.updateOne(query, update);
 
     if (result.modifiedCount > 0) {
       res.status(200).send({ message: "Event updated successfully." });
@@ -179,7 +179,7 @@ app.put("/Events/:eventId/Participants/:applicantEmail", async (req, res) => {
   };
 
   try {
-    const result = await UpcomingEventsCollection.updateOne(query, update);
+    const result = await EventsCollection.updateOne(query, update);
 
     if (result.modifiedCount > 0) {
       res
@@ -207,7 +207,7 @@ app.delete("/Events/:id", async (req, res) => {
   const query = { _id: new ObjectId(id) };
 
   try {
-    const result = await UpcomingEventsCollection.deleteOne(query);
+    const result = await EventsCollection.deleteOne(query);
 
     if (result.deletedCount > 0) {
       res.status(200).send({ message: "Event deleted successfully!" });
@@ -244,7 +244,7 @@ app.delete(
     };
 
     try {
-      const result = await UpcomingEventsCollection.updateOne(query, update);
+      const result = await EventsCollection.updateOne(query, update);
 
       if (result.modifiedCount > 0) {
         res.status(200).send({ message: "Participant deleted successfully!" });

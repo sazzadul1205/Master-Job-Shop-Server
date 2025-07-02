@@ -61,6 +61,7 @@ async function run() {
     const CoursesCollection = client
       .db("Master-Job-Shop")
       .collection("Courses");
+
     const MentorshipCollection = client
       .db("Master-Job-Shop")
       .collection("Mentorship");
@@ -1007,7 +1008,7 @@ async function run() {
         res.status(500).send({ message: "Error deleting the event", error });
       }
     });
-    
+
     // Delete a Participant
     app.delete(
       "/Upcoming-Events/:eventId/participants/:applicantEmail",
@@ -1078,6 +1079,7 @@ async function run() {
       const result = await CoursesCollection.findOne(query);
       res.send(result);
     });
+
     // Total Posted Courses Count API
     app.get("/CoursesCount", async (req, res) => {
       const count = await CoursesCollection.countDocuments();
@@ -1118,6 +1120,7 @@ async function run() {
         res.status(500).send({ message: "Error applying for the job", error });
       }
     });
+
     // Post Courses
     app.post("/Courses", async (req, res) => {
       const request = req.body;
@@ -1175,6 +1178,7 @@ async function run() {
         res.status(500).send({ message: "Error deleting the event", error });
       }
     });
+    
     // Delete a Participant by Email from a Specific Course
     app.delete("/Courses/:id/participants/:email", async (req, res) => {
       const courseId = req.params.id; // Course ID from the request params

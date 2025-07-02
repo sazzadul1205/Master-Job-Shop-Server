@@ -1407,7 +1407,7 @@ async function run() {
         res.status(500).send({ message: "Error deleting the review", error });
       }
     });
-    
+
     // Delete an applicant by applicantEmail from a specific mentorship post
     app.delete("/Mentorship/applicants/:id", async (req, res) => {
       const mentorshipId = req.params.id; // Get the mentorship post ID from the request params
@@ -1465,6 +1465,7 @@ async function run() {
       const result = await InternshipCollection.findOne(query);
       res.send(result);
     });
+
     // Total Posted Internship Count API
     app.get("/InternshipCount", async (req, res) => {
       const count = await InternshipCollection.countDocuments();
@@ -1477,6 +1478,7 @@ async function run() {
       const result = await InternshipCollection.insertOne(request);
       res.send(result);
     });
+
     // Apply for a Posted Job (update PeopleApplied array)
     app.post("/Internship/:id/apply", async (req, res) => {
       const id = req.params.id; // Get the job ID from the request params
@@ -1565,6 +1567,7 @@ async function run() {
         res.status(500).send({ message: "Error deleting the event", error });
       }
     });
+    
     // Delete an Applicant from a Posted Internship by ID
     app.delete("/Internship/applicants/:id", async (req, res) => {
       const id = req.params.id; // Get the internship ID from the request parameters

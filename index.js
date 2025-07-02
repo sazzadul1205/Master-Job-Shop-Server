@@ -208,7 +208,7 @@ async function run() {
       const result = await PostedJobCollection.findOne(query);
       res.send(result);
     });
-    
+
     // Total Posted Jobs Count API
     app.get("/PostedJobCount", async (req, res) => {
       const count = await PostedJobCollection.countDocuments();
@@ -249,6 +249,7 @@ async function run() {
         res.status(500).send({ message: "Error applying for the job", error });
       }
     });
+
     // Post Home Banners
     app.post("/Posted-Job", async (req, res) => {
       const request = req.body;
@@ -359,6 +360,7 @@ async function run() {
           .send({ message: "An error occurred while deleting jobs.", error });
       }
     });
+    
     // Delete a single applicant from PeopleApplied
     app.delete("/Posted-Job/:id/applicant", async (req, res) => {
       const jobId = req.params.id; // Get the job ID from the request parameters

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { ObjectId } = require("mongodb");
-const { client } = require("../config/db");
+const { client } = require("../../config/db");
 
 const HomeBannerCollection = client
   .db("Master-Job-Shop")

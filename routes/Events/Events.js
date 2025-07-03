@@ -8,7 +8,7 @@ const EventsCollection = client
   .collection("Upcoming-Events");
 
 // Get Events
-app.get("/Events", async (req, res) => {
+router.get("/Events", async (req, res) => {
   try {
     const { id, postedBy } = req.query;
     let query = {};
@@ -45,7 +45,7 @@ app.get("/Events", async (req, res) => {
 });
 
 // Get Total Count of Events
-app.get("/EventsCount", async (req, res) => {
+router.get("/EventsCount", async (req, res) => {
   try {
     const count = await EventsCollection.estimatedDocumentCount();
     res.status(200).json({ count });
@@ -58,7 +58,7 @@ app.get("/EventsCount", async (req, res) => {
 });
 
 // Apply for an Upcoming Event
-app.post("/Events/Apply/:id", async (req, res) => {
+router.post("/Events/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const applicantData = req.body;
 
@@ -96,7 +96,7 @@ app.post("/Events/Apply/:id", async (req, res) => {
 });
 
 // Post a new Upcoming Event
-app.post("/Events", async (req, res) => {
+router.post("/Events", async (req, res) => {
   const eventData = req.body;
 
   if (!eventData || typeof eventData !== "object") {
@@ -116,7 +116,7 @@ app.post("/Events", async (req, res) => {
 });
 
 // Update an Upcoming Event by ID
-app.put("/Events/:id", async (req, res) => {
+router.put("/Events/:id", async (req, res) => {
   const id = req.params.id;
   const updateData = req.body;
 
@@ -146,7 +146,7 @@ app.put("/Events/:id", async (req, res) => {
 });
 
 // Update a Participant's State by applicantEmail
-app.put("/Events/:eventId/Participants/:applicantEmail", async (req, res) => {
+router.put("/Events/:eventId/Participants/:applicantEmail", async (req, res) => {
   const { eventId, applicantEmail } = req.params;
   const { applicantState } = req.body;
 
@@ -197,7 +197,7 @@ app.put("/Events/:eventId/Participants/:applicantEmail", async (req, res) => {
 });
 
 // Delete an Upcoming Event by ID
-app.delete("/Events/:id", async (req, res) => {
+router.delete("/Events/:id", async (req, res) => {
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -221,7 +221,7 @@ app.delete("/Events/:id", async (req, res) => {
 });
 
 // Delete a Participant by applicantEmail
-app.delete(
+router.delete(
   "/Events/:eventId/Participants/:applicantEmail",
   async (req, res) => {
     const { eventId, applicantEmail } = req.params;

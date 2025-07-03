@@ -8,7 +8,7 @@ const InternshipCollection = client
   .collection("Internship");
 
 // Get Internship(s)
-app.get("/Internship", async (req, res) => {
+router.get("/Internship", async (req, res) => {
   const { id, postedBy } = req.query;
 
   let query = {};
@@ -38,7 +38,7 @@ app.get("/Internship", async (req, res) => {
 });
 
 // Total Posted Internship Count
-app.get("/InternshipCount", async (req, res) => {
+router.get("/InternshipCount", async (req, res) => {
   try {
     const count = await InternshipCollection.countDocuments();
     res.json({ count });
@@ -49,7 +49,7 @@ app.get("/InternshipCount", async (req, res) => {
 });
 
 // Post a new Internship
-app.post("/Internship", async (req, res) => {
+router.post("/Internship", async (req, res) => {
   try {
     const request = req.body;
     const result = await InternshipCollection.insertOne(request);
@@ -61,7 +61,7 @@ app.post("/Internship", async (req, res) => {
 });
 
 // Apply for an Internship (push applicant data to applicants array)
-app.post("/Internship/Apply/:id", async (req, res) => {
+router.post("/Internship/Apply/:id", async (req, res) => {
   const id = req.params.id; // Internship ID from URL params
   const applicantData = req.body; // Applicant data from request body
 
@@ -87,7 +87,7 @@ app.post("/Internship/Apply/:id", async (req, res) => {
 });
 
 // Update an Internship by ID
-app.put("/Internship/:id", async (req, res) => {
+router.put("/Internship/:id", async (req, res) => {
   const id = req.params.id;
   const updateData = req.body;
 
@@ -111,7 +111,7 @@ app.put("/Internship/:id", async (req, res) => {
 });
 
 // Delete an Internship by ID
-app.delete("/Internship/:id", async (req, res) => {
+router.delete("/Internship/:id", async (req, res) => {
   const id = req.params.id;
 
   try {
@@ -133,7 +133,7 @@ app.delete("/Internship/:id", async (req, res) => {
 });
 
 // Delete an Applicant from a Posted Internship by ID
-app.delete("/Internship/Apply/:id", async (req, res) => {
+router.delete("/Internship/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const { applicantEmail } = req.body;
 

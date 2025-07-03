@@ -8,7 +8,7 @@ const MentorshipCollection = client
   .collection("Mentorship");
 
 // Get Mentorship
-app.get("/Mentorship", async (req, res) => {
+router.get("/Mentorship", async (req, res) => {
   const { id, postedBy } = req.query;
 
   let query = {};
@@ -38,7 +38,7 @@ app.get("/Mentorship", async (req, res) => {
 });
 
 // Total Posted Mentorship Count API
-app.get("/MentorshipCount", async (req, res) => {
+router.get("/MentorshipCount", async (req, res) => {
   try {
     const count = await MentorshipCollection.countDocuments();
     res.json({ count });
@@ -49,7 +49,7 @@ app.get("/MentorshipCount", async (req, res) => {
 });
 
 // Post Mentorship
-app.post("/Mentorship", async (req, res) => {
+router.post("/Mentorship", async (req, res) => {
   try {
     const request = req.body;
     const result = await MentorshipCollection.insertOne(request);
@@ -61,7 +61,7 @@ app.post("/Mentorship", async (req, res) => {
 });
 
 // Apply Review for a Mentorship by ID
-app.post("/Mentorship/Review/:id", async (req, res) => {
+router.post("/Mentorship/Review/:id", async (req, res) => {
   const id = req.params.id;
   const reviewData = req.body;
 
@@ -84,7 +84,7 @@ app.post("/Mentorship/Review/:id", async (req, res) => {
 });
 
 // Apply for a Mentorship
-app.post("/Mentorship/Apply/:id", async (req, res) => {
+router.post("/Mentorship/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const applicantData = req.body;
 
@@ -107,7 +107,7 @@ app.post("/Mentorship/Apply/:id", async (req, res) => {
 });
 
 // Update a Mentorship by ID
-app.put("/Mentorship/:id", async (req, res) => {
+router.put("/Mentorship/:id", async (req, res) => {
   const id = req.params.id;
   const updateData = req.body;
 
@@ -133,7 +133,7 @@ app.put("/Mentorship/:id", async (req, res) => {
 });
 
 // Delete a Mentorship by ID
-app.delete("/Mentorship/:id", async (req, res) => {
+router.delete("/Mentorship/:id", async (req, res) => {
   const id = req.params.id;
   const query = { _id: new ObjectId(id) };
 
@@ -156,7 +156,7 @@ app.delete("/Mentorship/:id", async (req, res) => {
 });
 
 // Delete a review by reviewerEmail from a mentorship post
-app.delete("/Mentorship/Reviews/:id", async (req, res) => {
+router.delete("/Mentorship/Reviews/:id", async (req, res) => {
   const mentorshipId = req.params.id;
   const { reviewerEmail } = req.body;
 
@@ -182,7 +182,7 @@ app.delete("/Mentorship/Reviews/:id", async (req, res) => {
 });
 
 // Delete an applicant by applicantEmail from a mentorship post
-app.delete("/Mentorship/Apply/:id", async (req, res) => {
+router.delete("/Mentorship/Apply/:id", async (req, res) => {
   const mentorshipId = req.params.id;
   const { applicantEmail } = req.body;
 

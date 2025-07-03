@@ -6,7 +6,7 @@ const { ObjectId } = require("mongodb");
 const BlogsCollection = client.db("Master-Job-Shop").collection("Blogs");
 
 // Get Blogs (optionally filter by postedBy or id)
-app.get("/Blogs", async (req, res) => {
+router.get("/Blogs", async (req, res) => {
   const { postedBy, id } = req.query;
 
   let query = {};
@@ -38,7 +38,7 @@ app.get("/Blogs", async (req, res) => {
 });
 
 // Total Posted Blogs Count API
-app.get("/BlogsCount", async (req, res) => {
+router.get("/BlogsCount", async (req, res) => {
   try {
     const count = await BlogsCollection.countDocuments();
     res.status(200).json({ count });
@@ -49,7 +49,7 @@ app.get("/BlogsCount", async (req, res) => {
 });
 
 // Update Blog by ID
-app.put("/Blogs/:id", async (req, res) => {
+router.put("/Blogs/:id", async (req, res) => {
   const id = req.params.id; // Get the blog ID from the URL params
   const updatedBlog = req.body; // Blog update data from the request body
 
@@ -74,7 +74,7 @@ app.put("/Blogs/:id", async (req, res) => {
 });
 
 // POST: Vote on a blog (upvote/downvote)
-app.post("/Blogs/:id/vote", async (req, res) => {
+router.post("/Blogs/:id/vote", async (req, res) => {
   const id = req.params.id;
   const { type, email } = req.body;
 
@@ -154,7 +154,7 @@ app.post("/Blogs/:id/vote", async (req, res) => {
 });
 
 // POST: Create a new blog
-app.post("/Blogs", async (req, res) => {
+router.post("/Blogs", async (req, res) => {
   try {
     const newBlog = {
       ...req.body,
@@ -181,7 +181,7 @@ app.post("/Blogs", async (req, res) => {
 });
 
 // Delete an Blogs by ID
-app.delete("/Blogs/:id", async (req, res) => {
+router.delete("/Blogs/:id", async (req, res) => {
   const id = req.params.id; // Get the event ID from the request parameters
   const query = { _id: new ObjectId(id) }; // Construct the query to find the event by ID
 

@@ -8,7 +8,7 @@ const JobsCollection = client
   .collection("Posted-Job");
 
 // GET: Fetch Posted Jobs
-app.get("/Jobs", async (req, res) => {
+router.get("/Jobs", async (req, res) => {
   try {
     const { id, companyCode, email } = req.query;
     const query = {};
@@ -58,7 +58,7 @@ app.get("/Jobs", async (req, res) => {
 });
 
 // Total Posted Jobs Count API
-app.get("/JobsCount", async (req, res) => {
+router.get("/JobsCount", async (req, res) => {
   try {
     // Optional: extend this to filter by companyCode, email, etc.
     const count = await JobsCollection.countDocuments();
@@ -70,7 +70,7 @@ app.get("/JobsCount", async (req, res) => {
 });
 
 // Apply for a Posted Job (update PeopleApplied array)
-app.post("/Jobs/Apply/:id", async (req, res) => {
+router.post("/Jobs/Apply/:id", async (req, res) => {
   const { id } = req.params;
   const applicantData = req.body;
 
@@ -116,7 +116,7 @@ app.post("/Jobs/Apply/:id", async (req, res) => {
 });
 
 // POST: Create a new posted job
-app.post("/Jobs", async (req, res) => {
+router.post("/Jobs", async (req, res) => {
   const jobData = req.body;
 
   // Basic validation
@@ -152,7 +152,7 @@ app.post("/Jobs", async (req, res) => {
 });
 
 // Approve Posted Job by ID
-app.patch("/Jobs/Approve/:id", async (req, res) => {
+router.patch("/Jobs/Approve/:id", async (req, res) => {
   const jobId = req.params.id;
 
   // Validate ObjectId format
@@ -188,7 +188,7 @@ app.patch("/Jobs/Approve/:id", async (req, res) => {
 });
 
 // Update Posted Job by ID
-app.put("/Jobs/:id", async (req, res) => {
+router.put("/Jobs/:id", async (req, res) => {
   const id = req.params.id;
   const updatedData = req.body;
 
@@ -229,7 +229,7 @@ app.put("/Jobs/:id", async (req, res) => {
 });
 
 // Delete a single applicant from PeopleApplied by job ID and applicant email
-app.delete("/Jobs/Applicant/:id/", async (req, res) => {
+router.delete("/Jobs/Applicant/:id/", async (req, res) => {
   const jobId = req.params.id;
   const { email } = req.body;
 
@@ -266,7 +266,7 @@ app.delete("/Jobs/Applicant/:id/", async (req, res) => {
 });
 
 // Delete a single Posted Job by ID
-app.delete("/Jobs/:id", async (req, res) => {
+router.delete("/Jobs/:id", async (req, res) => {
   const jobId = req.params.id;
 
   // Validate ID

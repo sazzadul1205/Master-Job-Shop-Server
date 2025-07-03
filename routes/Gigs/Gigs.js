@@ -6,7 +6,7 @@ const { ObjectId } = require("mongodb");
 const GigsCollection = client.db("Master-Job-Shop").collection("Posted-Gig");
 
 // Get Posted Gig
-app.get("/Gigs", async (req, res) => {
+router.get("/Gigs", async (req, res) => {
   const { id, postedBy, email } = req.query;
 
   try {
@@ -49,7 +49,7 @@ app.get("/Gigs", async (req, res) => {
 });
 
 // Get Total Posted Gigs Count
-app.get("/GigsCount", async (req, res) => {
+router.get("/GigsCount", async (req, res) => {
   try {
     const count = await GigsCollection.countDocuments();
     res.status(200).json({ count });
@@ -63,7 +63,7 @@ app.get("/GigsCount", async (req, res) => {
 });
 
 // Apply for a Posted Gig
-app.post("/Gigs/Apply/:id", async (req, res) => {
+router.post("/Gigs/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const bidData = req.body;
 
@@ -96,7 +96,7 @@ app.post("/Gigs/Apply/:id", async (req, res) => {
 });
 
 // Post a New Gig
-app.post("/Gigs", async (req, res) => {
+router.post("/Gigs", async (req, res) => {
   const gigData = req.body;
 
   if (!gigData || !gigData.title || !gigData.PostedBy) {
@@ -120,7 +120,7 @@ app.post("/Gigs", async (req, res) => {
 });
 
 // Update a Posted Gig
-app.put("/Gigs/:id", async (req, res) => {
+router.put("/Gigs/:id", async (req, res) => {
   const id = req.params.id;
   const updatedData = req.body;
 
@@ -157,7 +157,7 @@ app.put("/Gigs/:id", async (req, res) => {
 });
 
 // Update a Posted Gig's State or Rating
-app.patch("/Gigs/:id", async (req, res) => {
+router.patch("/Gigs/:id", async (req, res) => {
   const gigId = req.params.id;
   const { state, rating } = req.body;
 
@@ -201,7 +201,7 @@ app.patch("/Gigs/:id", async (req, res) => {
 });
 
 // Delete a specific bidder from the peopleBided array
-app.delete("/Gigs/Bidder/:id", async (req, res) => {
+router.delete("/Gigs/Bidder/:id", async (req, res) => {
   const { id } = req.params;
   const { email } = req.body;
 
@@ -239,7 +239,7 @@ app.delete("/Gigs/Bidder/:id", async (req, res) => {
 });
 
 // Delete a single Posted Gig by ID
-app.delete("/Gigs/:id", async (req, res) => {
+router.delete("/Gigs/:id", async (req, res) => {
   const { id } = req.params;
 
   // Validate ID

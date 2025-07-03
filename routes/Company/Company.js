@@ -8,7 +8,7 @@ const CompanyCollection = client
   .collection("Company-Profiles");
 
 // Get Company Profiles
-app.get("/Company", async (req, res) => {
+router.get("/Company", async (req, res) => {
   const { id, email, postedBy } = req.query;
 
   let query = {};
@@ -48,7 +48,7 @@ app.get("/Company", async (req, res) => {
 });
 
 // Total Posted Company Profile Count API
-app.get("/CompanyCount", async (req, res) => {
+router.get("/CompanyCount", async (req, res) => {
   try {
     const count = await CompanyCollection.countDocuments();
     res.json({ count });
@@ -61,7 +61,7 @@ app.get("/CompanyCount", async (req, res) => {
 });
 
 // Get Company Basic Info
-app.get("/CompanyBasicInfo", async (req, res) => {
+router.get("/CompanyBasicInfo", async (req, res) => {
   const { id } = req.query;
 
   // Basic info projection
@@ -117,7 +117,7 @@ app.get("/CompanyBasicInfo", async (req, res) => {
 });
 
 // Post Company Profile
-app.post("/Company", async (req, res) => {
+router.post("/Company", async (req, res) => {
   const newProfile = req.body;
 
   // Basic validation (adjust or expand as needed)
@@ -140,7 +140,7 @@ app.post("/Company", async (req, res) => {
 });
 
 // Update Company Profile by ID
-app.put("/Company/:id", async (req, res) => {
+router.put("/Company/:id", async (req, res) => {
   const id = req.params.id;
   const updatedCompanyProfile = req.body;
 
@@ -181,7 +181,7 @@ app.put("/Company/:id", async (req, res) => {
 });
 
 // Delete a single Company Profile by ID
-app.delete("/Company/:id", async (req, res) => {
+router.delete("/Company/:id", async (req, res) => {
   const id = req.params.id;
 
   if (!id) {

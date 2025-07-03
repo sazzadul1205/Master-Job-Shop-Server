@@ -7,7 +7,7 @@ const { ObjectId } = require("mongodb");
 const UsersCollection = client.db("Master-Job-Shop").collection("Users");
 
 // Get All Users or a Specific User by Email
-app.get("/Users", async (req, res) => {
+router.get("/Users", async (req, res) => {
   try {
     const { email } = req.query;
 
@@ -30,7 +30,7 @@ app.get("/Users", async (req, res) => {
 });
 
 // Get Total Users Count
-app.get("/Users/count", async (req, res) => {
+router.get("/Users/count", async (req, res) => {
   try {
     const count = await UsersCollection.countDocuments();
     res.status(200).json({ count });
@@ -41,7 +41,7 @@ app.get("/Users/count", async (req, res) => {
 });
 
 // Update User by ID (PUT)
-app.put("/Users/UpdateUser/:id", async (req, res) => {
+router.put("/Users/UpdateUser/:id", async (req, res) => {
   const id = req.params.id; // Get the user ID from the URL params
   const updatedUser = req.body; // Get the updated user data from the request body
 
@@ -74,7 +74,7 @@ app.put("/Users/UpdateUser/:id", async (req, res) => {
 });
 
 // Create a New User
-app.post("/Users", async (req, res) => {
+router.post("/Users", async (req, res) => {
   try {
     const newUser = req.body;
 

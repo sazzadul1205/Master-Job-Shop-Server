@@ -27,6 +27,7 @@ const connectDB = async (retries = 100, delayTime = 5000) => {
 
       // If the connection is successful, log a success message
       console.log("Successfully connected to MongoDB!");
+
       return;
     } catch (err) {
       // Log the error message and retry

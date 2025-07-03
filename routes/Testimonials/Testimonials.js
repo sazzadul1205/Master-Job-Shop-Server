@@ -8,7 +8,7 @@ const TestimonialsCollection = client
   .collection("Testimonials");
 
 // GET Testimonials 
-app.get("/Testimonials", async (req, res) => {
+router.get("/Testimonials", async (req, res) => {
   const { postedBy, id } = req.query;
 
   let query = {};
@@ -33,7 +33,7 @@ app.get("/Testimonials", async (req, res) => {
 });
 
 // GET Total Testimonials Count
-app.get("/TestimonialsCount", async (req, res) => {
+router.get("/TestimonialsCount", async (req, res) => {
   try {
     const count = await TestimonialsCollection.countDocuments();
     res.json({ count });
@@ -44,7 +44,7 @@ app.get("/TestimonialsCount", async (req, res) => {
 });
 
 // POST a new Testimonial
-app.post("/Testimonials", async (req, res) => {
+router.post("/Testimonials", async (req, res) => {
   const request = req.body;
   try {
     const result = await TestimonialsCollection.insertOne(request);
@@ -58,7 +58,7 @@ app.post("/Testimonials", async (req, res) => {
 });
 
 // PUT Testimonial by ID
-app.put("/Testimonials/:id", async (req, res) => {
+router.put("/Testimonials/:id", async (req, res) => {
   const id = req.params.id;
   const updatedData = req.body;
 
@@ -88,7 +88,7 @@ app.put("/Testimonials/:id", async (req, res) => {
 });
 
 // DELETE Testimonial by ID
-app.delete("/Testimonials/:id", async (req, res) => {
+router.delete("/Testimonials/:id", async (req, res) => {
   const id = req.params.id;
 
   let query;

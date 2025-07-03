@@ -8,7 +8,7 @@ const NewsLetterCollection = client
   .collection("NewsLetter");
 
 // Get all Newsletters
-app.get("/NewsLetter", async (req, res) => {
+router.get("/NewsLetter", async (req, res) => {
   try {
     const result = await NewsLetterCollection.find().toArray();
     res.send(result.length === 1 ? result[0] : result);
@@ -19,7 +19,7 @@ app.get("/NewsLetter", async (req, res) => {
 });
 
 // Get total Newsletter count
-app.get("/NewsLetterCount", async (req, res) => {
+router.get("/NewsLetterCount", async (req, res) => {
   try {
     const count = await NewsLetterCollection.countDocuments();
     res.json({ count });
@@ -30,7 +30,7 @@ app.get("/NewsLetterCount", async (req, res) => {
 });
 
 // Post a new Newsletter
-app.post("/NewsLetter", async (req, res) => {
+router.post("/NewsLetter", async (req, res) => {
   const request = req.body;
   try {
     const result = await NewsLetterCollection.insertOne(request);
@@ -44,7 +44,7 @@ app.post("/NewsLetter", async (req, res) => {
 });
 
 // Delete a Newsletter by ID
-app.delete("/NewsLetter/:id", async (req, res) => {
+router.delete("/NewsLetter/:id", async (req, res) => {
   const id = req.params.id;
   const query = { _id: new ObjectId(id) };
 

@@ -8,7 +8,7 @@ const CompanyCollection = client
   .collection("Company-Profiles");
 
 // Get Company Profiles
-router.get("/Company", async (req, res) => {
+router.get("/", async (req, res) => {
   const { id, email, postedBy } = req.query;
 
   let query = {};
@@ -117,7 +117,7 @@ router.get("/CompanyBasicInfo", async (req, res) => {
 });
 
 // Post Company Profile
-router.post("/Company", async (req, res) => {
+router.post("/", async (req, res) => {
   const newProfile = req.body;
 
   // Basic validation (adjust or expand as needed)
@@ -140,7 +140,7 @@ router.post("/Company", async (req, res) => {
 });
 
 // Update Company Profile by ID
-router.put("/Company/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updatedCompanyProfile = req.body;
 
@@ -181,7 +181,7 @@ router.put("/Company/:id", async (req, res) => {
 });
 
 // Delete a single Company Profile by ID
-router.delete("/Company/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const id = req.params.id;
 
   if (!id) {

@@ -8,7 +8,7 @@ const InsightsCollection = client
   .collection("Salary-Insight");
 
 // Get Salary Insight(s)
-router.get("/Insights", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { id } = req.query;
     let query = {};
@@ -48,7 +48,7 @@ router.get("/InsightsCount", async (req, res) => {
 });
 
 // Post Salary Insight
-router.post("/Insights", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const request = req.body;
 
@@ -72,7 +72,7 @@ router.post("/Insights", async (req, res) => {
 });
 
 // Delete a single Salary Insight by ID
-router.delete("/Insights/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const id = req.params.id;
 

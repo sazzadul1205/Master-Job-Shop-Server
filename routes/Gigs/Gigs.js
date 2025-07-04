@@ -63,7 +63,7 @@ router.get("/GigsCount", async (req, res) => {
 });
 
 // Apply for a Posted Gig
-router.post("/Gigs/Apply/:id", async (req, res) => {
+router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const bidData = req.body;
 
@@ -96,7 +96,7 @@ router.post("/Gigs/Apply/:id", async (req, res) => {
 });
 
 // Post a New Gig
-router.post("/Gigs", async (req, res) => {
+router.post("/", async (req, res) => {
   const gigData = req.body;
 
   if (!gigData || !gigData.title || !gigData.PostedBy) {
@@ -120,7 +120,7 @@ router.post("/Gigs", async (req, res) => {
 });
 
 // Update a Posted Gig
-router.put("/Gigs/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updatedData = req.body;
 
@@ -157,7 +157,7 @@ router.put("/Gigs/:id", async (req, res) => {
 });
 
 // Update a Posted Gig's State or Rating
-router.patch("/Gigs/:id", async (req, res) => {
+router.patch("/:id", async (req, res) => {
   const gigId = req.params.id;
   const { state, rating } = req.body;
 
@@ -201,7 +201,7 @@ router.patch("/Gigs/:id", async (req, res) => {
 });
 
 // Delete a specific bidder from the peopleBided array
-router.delete("/Gigs/Bidder/:id", async (req, res) => {
+router.delete("/Bidder/:id", async (req, res) => {
   const { id } = req.params;
   const { email } = req.body;
 
@@ -239,7 +239,7 @@ router.delete("/Gigs/Bidder/:id", async (req, res) => {
 });
 
 // Delete a single Posted Gig by ID
-router.delete("/Gigs/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
   // Validate ID

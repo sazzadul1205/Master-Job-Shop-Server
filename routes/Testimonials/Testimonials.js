@@ -8,7 +8,7 @@ const TestimonialsCollection = client
   .collection("Testimonials");
 
 // GET Testimonials 
-router.get("/Testimonials", async (req, res) => {
+router.get("/", async (req, res) => {
   const { postedBy, id } = req.query;
 
   let query = {};
@@ -44,7 +44,7 @@ router.get("/TestimonialsCount", async (req, res) => {
 });
 
 // POST a new Testimonial
-router.post("/Testimonials", async (req, res) => {
+router.post("/", async (req, res) => {
   const request = req.body;
   try {
     const result = await TestimonialsCollection.insertOne(request);
@@ -58,7 +58,7 @@ router.post("/Testimonials", async (req, res) => {
 });
 
 // PUT Testimonial by ID
-router.put("/Testimonials/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updatedData = req.body;
 
@@ -88,7 +88,7 @@ router.put("/Testimonials/:id", async (req, res) => {
 });
 
 // DELETE Testimonial by ID
-router.delete("/Testimonials/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const id = req.params.id;
 
   let query;

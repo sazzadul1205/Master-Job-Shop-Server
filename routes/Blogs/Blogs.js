@@ -6,7 +6,7 @@ const { ObjectId } = require("mongodb");
 const BlogsCollection = client.db("Master-Job-Shop").collection("Blogs");
 
 // Get Blogs (optionally filter by postedBy or id)
-router.get("/Blogs", async (req, res) => {
+router.get("/", async (req, res) => {
   const { postedBy, id } = req.query;
 
   let query = {};
@@ -49,7 +49,7 @@ router.get("/BlogsCount", async (req, res) => {
 });
 
 // Update Blog by ID
-router.put("/Blogs/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id; // Get the blog ID from the URL params
   const updatedBlog = req.body; // Blog update data from the request body
 
@@ -74,7 +74,7 @@ router.put("/Blogs/:id", async (req, res) => {
 });
 
 // POST: Vote on a blog (upvote/downvote)
-router.post("/Blogs/:id/vote", async (req, res) => {
+router.post("/:id/vote", async (req, res) => {
   const id = req.params.id;
   const { type, email } = req.body;
 
@@ -154,7 +154,7 @@ router.post("/Blogs/:id/vote", async (req, res) => {
 });
 
 // POST: Create a new blog
-router.post("/Blogs", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const newBlog = {
       ...req.body,
@@ -166,12 +166,10 @@ router.post("/Blogs", async (req, res) => {
     };
 
     const result = await BlogsCollection.insertOne(newBlog);
-    res
-      .status(201)
-      .json({
-        message: "Blog created successfully",
-        insertedId: result.insertedId,
-      });
+    res.status(201).json({
+      message: "Blog created successfully",
+      insertedId: result.insertedId,
+    });
   } catch (error) {
     console.error("Error creating blog:", error);
     res
@@ -181,7 +179,7 @@ router.post("/Blogs", async (req, res) => {
 });
 
 // Delete an Blogs by ID
-router.delete("/Blogs/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const id = req.params.id; // Get the event ID from the request parameters
   const query = { _id: new ObjectId(id) }; // Construct the query to find the event by ID
 

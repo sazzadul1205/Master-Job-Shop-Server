@@ -8,7 +8,7 @@ const InternshipCollection = client
   .collection("Internship");
 
 // Get Internship(s)
-router.get("/Internship", async (req, res) => {
+router.get("/", async (req, res) => {
   const { id, postedBy } = req.query;
 
   let query = {};
@@ -49,7 +49,7 @@ router.get("/InternshipCount", async (req, res) => {
 });
 
 // Post a new Internship
-router.post("/Internship", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const request = req.body;
     const result = await InternshipCollection.insertOne(request);
@@ -61,7 +61,7 @@ router.post("/Internship", async (req, res) => {
 });
 
 // Apply for an Internship (push applicant data to applicants array)
-router.post("/Internship/Apply/:id", async (req, res) => {
+router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id; // Internship ID from URL params
   const applicantData = req.body; // Applicant data from request body
 
@@ -87,7 +87,7 @@ router.post("/Internship/Apply/:id", async (req, res) => {
 });
 
 // Update an Internship by ID
-router.put("/Internship/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updateData = req.body;
 
@@ -111,7 +111,7 @@ router.put("/Internship/:id", async (req, res) => {
 });
 
 // Delete an Internship by ID
-router.delete("/Internship/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const id = req.params.id;
 
   try {
@@ -133,7 +133,7 @@ router.delete("/Internship/:id", async (req, res) => {
 });
 
 // Delete an Applicant from a Posted Internship by ID
-router.delete("/Internship/Apply/:id", async (req, res) => {
+router.delete("/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const { applicantEmail } = req.body;
 

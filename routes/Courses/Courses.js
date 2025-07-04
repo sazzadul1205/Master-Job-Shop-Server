@@ -6,7 +6,7 @@ const { ObjectId } = require("mongodb");
 const CoursesCollection = client.db("Master-Job-Shop").collection("Courses");
 
 // Get Courses
-router.get("/Courses", async (req, res) => {
+router.get("/", async (req, res) => {
   const { id, postedBy, email } = req.query;
 
   try {
@@ -51,7 +51,7 @@ router.get("/CoursesCount", async (req, res) => {
 });
 
 // Apply for a Course
-router.post("/Courses/Apply/:id", async (req, res) => {
+router.post("/Apply/:id", async (req, res) => {
   const { courseId } = req.params;
   const applicantData = req.body;
 
@@ -77,7 +77,7 @@ router.post("/Courses/Apply/:id", async (req, res) => {
 });
 
 // Create a new Course
-router.post("/Courses", async (req, res) => {
+router.post("/", async (req, res) => {
   const courseData = req.body;
 
   if (!courseData || Object.keys(courseData).length === 0) {
@@ -97,7 +97,7 @@ router.post("/Courses", async (req, res) => {
 });
 
 // Update a Course by ID
-router.put("/Courses/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const { id } = req.params;
   const updateData = req.body;
 
@@ -123,7 +123,7 @@ router.put("/Courses/:id", async (req, res) => {
 });
 
 // Delete a Course by ID
-router.delete("/Courses/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -142,7 +142,7 @@ router.delete("/Courses/:id", async (req, res) => {
 });
 
 // Delete a Participant by Email from a Specific Course
-router.delete("/Courses/:id/Participants/:email", async (req, res) => {
+router.delete("/:id/Participants/:email", async (req, res) => {
   const { id, email } = req.params;
 
   try {

@@ -8,7 +8,7 @@ const EventsCollection = client
   .collection("Upcoming-Events");
 
 // Get Events
-router.get("/Events", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { id, postedBy } = req.query;
     let query = {};
@@ -58,7 +58,7 @@ router.get("/EventsCount", async (req, res) => {
 });
 
 // Apply for an Upcoming Event
-router.post("/Events/Apply/:id", async (req, res) => {
+router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const applicantData = req.body;
 
@@ -96,7 +96,7 @@ router.post("/Events/Apply/:id", async (req, res) => {
 });
 
 // Post a new Upcoming Event
-router.post("/Events", async (req, res) => {
+router.post("/", async (req, res) => {
   const eventData = req.body;
 
   if (!eventData || typeof eventData !== "object") {
@@ -116,7 +116,7 @@ router.post("/Events", async (req, res) => {
 });
 
 // Update an Upcoming Event by ID
-router.put("/Events/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updateData = req.body;
 
@@ -146,7 +146,7 @@ router.put("/Events/:id", async (req, res) => {
 });
 
 // Update a Participant's State by applicantEmail
-router.put("/Events/:eventId/Participants/:applicantEmail", async (req, res) => {
+router.put("/:eventId/Participants/:applicantEmail", async (req, res) => {
   const { eventId, applicantEmail } = req.params;
   const { applicantState } = req.body;
 
@@ -197,7 +197,7 @@ router.put("/Events/:eventId/Participants/:applicantEmail", async (req, res) => 
 });
 
 // Delete an Upcoming Event by ID
-router.delete("/Events/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -221,41 +221,38 @@ router.delete("/Events/:id", async (req, res) => {
 });
 
 // Delete a Participant by applicantEmail
-router.delete(
-  "/Events/:eventId/Participants/:applicantEmail",
-  async (req, res) => {
-    const { eventId, applicantEmail } = req.params;
+router.delete("/:eventId/Participants/:applicantEmail", async (req, res) => {
+  const { eventId, applicantEmail } = req.params;
 
-    if (!ObjectId.isValid(eventId)) {
-      return res.status(400).send({ message: "Invalid event ID format." });
-    }
-
-    if (!applicantEmail || typeof applicantEmail !== "string") {
-      return res
-        .status(400)
-        .send({ message: "Invalid or missing applicant email." });
-    }
-
-    const query = { _id: new ObjectId(eventId) };
-    const update = {
-      $pull: {
-        ParticipantApplications: { applicantEmail },
-      },
-    };
-
-    try {
-      const result = await EventsCollection.updateOne(query, update);
-
-      if (result.modifiedCount > 0) {
-        res.status(200).send({ message: "Participant deleted successfully!" });
-      } else {
-        res.status(404).send({ message: "Event or participant not found." });
-      }
-    } catch (error) {
-      console.error("Error deleting participant:", error);
-      res.status(500).send({ message: "Error deleting participant", error });
-    }
+  if (!ObjectId.isValid(eventId)) {
+    return res.status(400).send({ message: "Invalid event ID format." });
   }
-);
+
+  if (!applicantEmail || typeof applicantEmail !== "string") {
+    return res
+      .status(400)
+      .send({ message: "Invalid or missing applicant email." });
+  }
+
+  const query = { _id: new ObjectId(eventId) };
+  const update = {
+    $pull: {
+      ParticipantApplications: { applicantEmail },
+    },
+  };
+
+  try {
+    const result = await EventsCollection.updateOne(query, update);
+
+    if (result.modifiedCount > 0) {
+      res.status(200).send({ message: "Participant deleted successfully!" });
+    } else {
+      res.status(404).send({ message: "Event or participant not found." });
+    }
+  } catch (error) {
+    console.error("Error deleting participant:", error);
+    res.status(500).send({ message: "Error deleting participant", error });
+  }
+});
 
 module.exports = router;

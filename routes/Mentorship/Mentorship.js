@@ -8,7 +8,7 @@ const MentorshipCollection = client
   .collection("Mentorship");
 
 // Get Mentorship
-router.get("/Mentorship", async (req, res) => {
+router.get("/", async (req, res) => {
   const { id, postedBy } = req.query;
 
   let query = {};
@@ -49,7 +49,7 @@ router.get("/MentorshipCount", async (req, res) => {
 });
 
 // Post Mentorship
-router.post("/Mentorship", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const request = req.body;
     const result = await MentorshipCollection.insertOne(request);
@@ -61,7 +61,7 @@ router.post("/Mentorship", async (req, res) => {
 });
 
 // Apply Review for a Mentorship by ID
-router.post("/Mentorship/Review/:id", async (req, res) => {
+router.post("/Review/:id", async (req, res) => {
   const id = req.params.id;
   const reviewData = req.body;
 
@@ -84,7 +84,7 @@ router.post("/Mentorship/Review/:id", async (req, res) => {
 });
 
 // Apply for a Mentorship
-router.post("/Mentorship/Apply/:id", async (req, res) => {
+router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const applicantData = req.body;
 
@@ -107,7 +107,7 @@ router.post("/Mentorship/Apply/:id", async (req, res) => {
 });
 
 // Update a Mentorship by ID
-router.put("/Mentorship/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updateData = req.body;
 
@@ -133,7 +133,7 @@ router.put("/Mentorship/:id", async (req, res) => {
 });
 
 // Delete a Mentorship by ID
-router.delete("/Mentorship/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const id = req.params.id;
   const query = { _id: new ObjectId(id) };
 
@@ -156,7 +156,7 @@ router.delete("/Mentorship/:id", async (req, res) => {
 });
 
 // Delete a review by reviewerEmail from a mentorship post
-router.delete("/Mentorship/Reviews/:id", async (req, res) => {
+router.delete("/Reviews/:id", async (req, res) => {
   const mentorshipId = req.params.id;
   const { reviewerEmail } = req.body;
 
@@ -182,7 +182,7 @@ router.delete("/Mentorship/Reviews/:id", async (req, res) => {
 });
 
 // Delete an applicant by applicantEmail from a mentorship post
-router.delete("/Mentorship/Apply/:id", async (req, res) => {
+router.delete("/Apply/:id", async (req, res) => {
   const mentorshipId = req.params.id;
   const { applicantEmail } = req.body;
 

@@ -8,7 +8,7 @@ const JobsCollection = client
   .collection("Posted-Job");
 
 // GET: Fetch Posted Jobs
-router.get("/Jobs", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { id, companyCode, email } = req.query;
     const query = {};
@@ -70,7 +70,7 @@ router.get("/JobsCount", async (req, res) => {
 });
 
 // Apply for a Posted Job (update PeopleApplied array)
-router.post("/Jobs/Apply/:id", async (req, res) => {
+router.post("/Apply/:id", async (req, res) => {
   const { id } = req.params;
   const applicantData = req.body;
 
@@ -116,7 +116,7 @@ router.post("/Jobs/Apply/:id", async (req, res) => {
 });
 
 // POST: Create a new posted job
-router.post("/Jobs", async (req, res) => {
+router.post("/", async (req, res) => {
   const jobData = req.body;
 
   // Basic validation
@@ -152,7 +152,7 @@ router.post("/Jobs", async (req, res) => {
 });
 
 // Approve Posted Job by ID
-router.patch("/Jobs/Approve/:id", async (req, res) => {
+router.patch("/Approve/:id", async (req, res) => {
   const jobId = req.params.id;
 
   // Validate ObjectId format
@@ -188,7 +188,7 @@ router.patch("/Jobs/Approve/:id", async (req, res) => {
 });
 
 // Update Posted Job by ID
-router.put("/Jobs/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updatedData = req.body;
 
@@ -229,7 +229,7 @@ router.put("/Jobs/:id", async (req, res) => {
 });
 
 // Delete a single applicant from PeopleApplied by job ID and applicant email
-router.delete("/Jobs/Applicant/:id/", async (req, res) => {
+router.delete("/Applicant/:id/", async (req, res) => {
   const jobId = req.params.id;
   const { email } = req.body;
 
@@ -266,7 +266,7 @@ router.delete("/Jobs/Applicant/:id/", async (req, res) => {
 });
 
 // Delete a single Posted Job by ID
-router.delete("/Jobs/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const jobId = req.params.id;
 
   // Validate ID

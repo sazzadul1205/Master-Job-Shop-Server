@@ -6,7 +6,7 @@ const { ObjectId } = require("mongodb");
 const GigsCollection = client.db("Master-Job-Shop").collection("Posted-Gig");
 
 // Get Posted Gig
-router.get("/Gigs", async (req, res) => {
+router.get("/", async (req, res) => {
   const { id, postedBy, email } = req.query;
 
   try {

@@ -1,5 +1,6 @@
 // index.js
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const cors = require("cors");
 
 // Connect Database
@@ -60,11 +61,11 @@ app.post("/jwt", async (req, res) => {
     if (!user || typeof user !== "object") {
       return res.status(400).json({ message: "Missing user object." });
     }
-    const { id, email, role = "user" } = user;
+    const { id, email } = user;
     if (!id || !email) {
       return res.status(400).json({ message: "Invalid user data." });
     }
-    const payload = { id, email, role };
+    const payload = { id, email };
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "10d",
       issuer: "www.Master-Job-Shop-Auth.com",

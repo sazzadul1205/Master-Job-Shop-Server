@@ -40,6 +40,28 @@ router.get("/UserCount", async (req, res) => {
   }
 });
 
+// Check if email exists (GET API)
+router.get("/CheckEmail", async (req, res) => {
+  try {
+    const email = req.query.email;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email parameter is required." });
+    }
+
+    const existingUser = await UsersCollection.findOne({ email });
+    res.status(200).json({
+      message: existingUser
+        ? "Email is already in use."
+        : "Email is available.",
+      exists: !!existingUser,
+    });
+  } catch (error) {
+    console.error("Error checking email:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // Update User by ID (PUT)
 router.put("/:id", async (req, res) => {
   const id = req.params.id; // Get the user ID from the URL params

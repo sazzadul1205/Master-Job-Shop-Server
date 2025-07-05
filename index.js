@@ -5,7 +5,6 @@ const cors = require("cors");
 // Connect Database
 const { connectDB } = require("./config/db");
 
-
 // Basic API Routes
 const Testimonials = require("./routes/Testimonials/Testimonials");
 const HomeBanner = require("./routes/HomeBanner/HomeBanner");
@@ -53,6 +52,29 @@ app.use(express.json());
 
 // Connect to the database
 connectDB();
+
+// Auth endpoint: issues JWT
+app.post("/jwt", async (req, res) => {
+  try {
+    const { user } = req.body;
+    if (!user || typeof user !== "object") {
+      return res.status(400).json({ message: "Missing user object." });
+    }
+    const { id, email, role = "user" } = user;
+    if (!id || !email) {
+      return res.status(400).json({ message: "Invalid user data." });
+    }
+    const payload = { id, email, role };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "10d",
+      issuer: "www.Master-Job-Shop-Auth.com",
+    });
+    res.status(200).json({ token });
+  } catch (error) {
+    console.error("JWT generation error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
 
 app.use("/Users", Users);
 app.use("/Blogs", Blogs);

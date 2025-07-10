@@ -3,9 +3,7 @@ const router = express.Router();
 const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
-const EventsCollection = client
-  .db("Master-Job-Shop")
-  .collection("Upcoming-Events");
+const EventsCollection = client.db("Master-Job-Shop").collection("Events");
 
 // Get Events
 router.get("/", async (req, res) => {

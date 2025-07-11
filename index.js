@@ -38,6 +38,9 @@ const Mentorship = require("./routes/Mentorship/Mentorship");
 // Internship API routes
 const Internship = require("./routes/Internship/Internship");
 
+// PDF Upload
+const PDFUpload = require("./routes/PDFUpload/PDFUpload");
+
 require("dotenv").config();
 const app = express();
 
@@ -99,6 +102,8 @@ app.use("/Courses", Courses);
 app.use("/Mentorship", Mentorship);
 
 app.use("/Internship", Internship);
+
+app.use("/PDFUpload", PDFUpload);
 
 // Root health-check
 app.get("/", (req, res) => {

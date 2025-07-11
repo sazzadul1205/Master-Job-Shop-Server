@@ -15,6 +15,7 @@ const Users = require("./routes/User/User");
 const Blogs = require("./routes/Blogs/Blogs");
 
 // Trainers API routes
+const JobApplications = require("./routes/Jobs/JobApplications");
 const Jobs = require("./routes/Jobs/Jobs");
 
 // Gigs API routes
@@ -87,6 +88,7 @@ app.use("/NewsLetter", NewsLetter);
 app.use("/Home-Banner", HomeBanner);
 app.use("/Testimonials", Testimonials);
 
+app.use("/JobApplications", JobApplications);
 app.use("/Jobs", Jobs);
 
 app.use("/Gigs", Gigs);

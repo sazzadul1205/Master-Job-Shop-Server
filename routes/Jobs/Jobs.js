@@ -3,9 +3,7 @@ const router = express.Router();
 const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
-const JobsCollection = client
-  .db("Master-Job-Shop")
-  .collection("Posted-Job");
+const JobsCollection = client.db("Master-Job-Shop").collection("Posted-Job");
 
 // GET: Fetch Posted Jobs
 router.get("/", async (req, res) => {

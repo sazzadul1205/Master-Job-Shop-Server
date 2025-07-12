@@ -19,6 +19,7 @@ const JobApplications = require("./routes/Jobs/JobApplications");
 const Jobs = require("./routes/Jobs/Jobs");
 
 // Gigs API routes
+const GigBids = require("./routes/Gigs/GigBids");
 const Gigs = require("./routes/Gigs/Gigs");
 
 // Company API routes
@@ -91,6 +92,7 @@ app.use("/Testimonials", Testimonials);
 app.use("/JobApplications", JobApplications);
 app.use("/Jobs", Jobs);
 
+app.use("/GigBids", GigBids);
 app.use("/Gigs", Gigs);
 
 app.use("/Company", Company);

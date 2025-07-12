@@ -40,7 +40,7 @@ router.get("/Exists", async (req, res) => {
       return res.status(400).json({ message: "Missing email or gigId." });
     }
 
-    const applicationExists = await JobCollection.findOne({ email, gigId });
+    const applicationExists = await GigCollection.findOne({ email, gigId });
 
     res.json({ exists: !!applicationExists });
   } catch (error) {

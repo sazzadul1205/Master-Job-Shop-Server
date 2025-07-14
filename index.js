@@ -40,6 +40,7 @@ const MentorshipApplications = require("./routes/Mentorship/MentorshipApplicatio
 const Mentorship = require("./routes/Mentorship/Mentorship");
 
 // Internship API routes
+const InternshipApplications = require("./routes/Internship/InternshipApplications");
 const Internship = require("./routes/Internship/Internship");
 
 // PDF Upload
@@ -109,6 +110,7 @@ app.use("/Courses", Courses);
 app.use("/MentorshipApplications", MentorshipApplications);
 app.use("/Mentorship", Mentorship);
 
+app.use("/InternshipApplications", InternshipApplications);
 app.use("/Internship", Internship);
 
 app.use("/PDFUpload", PDFUpload);

@@ -32,6 +32,7 @@ const insights = require("./routes/Insights/Insights");
 const Events = require("./routes/Events/Events");
 
 // Courses API routes
+const CourseApplications = require("./routes/Courses/CourseApplications");
 const Courses = require("./routes/Courses/Courses");
 
 // Mentorship API routes
@@ -101,6 +102,7 @@ app.use("/Insights", insights);
 
 app.use("/Events", Events);
 
+app.use("/CourseApplications", CourseApplications);
 app.use("/Courses", Courses);
 
 app.use("/Mentorship", Mentorship);

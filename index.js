@@ -26,7 +26,7 @@ const Gigs = require("./routes/Gigs/Gigs");
 const Company = require("./routes/Company/Company");
 
 // Insights API routes
-const insights = require("./routes/Insights/Insights");
+const Insights = require("./routes/Insights/Insights");
 
 // Events API routes
 const EventApplications = require("./routes/Events/EventApplications");
@@ -44,8 +44,11 @@ const Mentorship = require("./routes/Mentorship/Mentorship");
 const InternshipApplications = require("./routes/Internship/InternshipApplications");
 const Internship = require("./routes/Internship/Internship");
 
-// PDF Upload
+// PDF Upload API route
 const PDFUpload = require("./routes/PDFUpload/PDFUpload");
+
+// Insights API routes
+const AboutUs = require("./routes/AboutUs/AboutUs");
 
 require("dotenv").config();
 const app = express();
@@ -101,7 +104,7 @@ app.use("/Gigs", Gigs);
 
 app.use("/Company", Company);
 
-app.use("/Insights", insights);
+app.use("/Insights", Insights);
 
 app.use("/EventApplications", EventApplications);
 app.use("/Events", Events);
@@ -116,6 +119,8 @@ app.use("/InternshipApplications", InternshipApplications);
 app.use("/Internship", Internship);
 
 app.use("/PDFUpload", PDFUpload);
+
+app.use("/AboutUs", AboutUs);
 
 // Root health-check
 app.get("/", (req, res) => {

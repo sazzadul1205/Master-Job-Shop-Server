@@ -8,34 +8,44 @@ const JobsCollection = client.db("Master-Job-Shop").collection("Posted-Job");
 // GET: Fetch Posted Jobs
 router.get("/", async (req, res) => {
   try {
-    const { id, companyCode, email } = req.query;
+    const { id, jobIds, companyCode, email } = req.query;
     const query = {};
 
-    // Filter by _id if provided
+    // Handle single job by id
     if (id) {
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ message: "Invalid job ID." });
       }
-      query._id = new ObjectId(id);
+      const job = await JobsCollection.findOne({ _id: new ObjectId(id) });
+      if (!job) {
+        return res.status(404).json({ message: "Job not found." });
+      }
+      return res.status(200).json(job);
     }
 
-    // Filter by companyCode if provided
+    // Handle multiple jobIds (as CSV string)
+    if (jobIds) {
+      let idsArray;
+      try {
+        idsArray = jobIds.split(",").map((id) => new ObjectId(id.trim()));
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid jobIds format." });
+      }
+
+      const jobs = await JobsCollection.find({
+        _id: { $in: idsArray },
+      }).toArray();
+      return res.status(200).json(jobs);
+    }
+
+    // Filter by companyCode
     if (companyCode) {
       query.companyCode = companyCode;
     }
 
-    // Filter by postedBy.email if provided
+    // Filter by postedBy.email
     if (email) {
       query["postedBy.email"] = email;
-    }
-
-    // Determine whether to fetch single or multiple results
-    if (id) {
-      const job = await JobsCollection.findOne(query);
-      if (!job) {
-        return res.status(404).json({ message: "Job not found." });
-      }
-      return res.status(200).json(job); // Return object directly
     }
 
     const jobs = await JobsCollection.find(query).toArray();
@@ -45,10 +55,10 @@ router.get("/", async (req, res) => {
     }
 
     if (jobs.length === 1) {
-      return res.status(200).json(jobs[0]); // Return single object
+      return res.status(200).json(jobs[0]);
     }
 
-    res.status(200).json(jobs); // Return array of jobs
+    res.status(200).json(jobs);
   } catch (error) {
     console.error("Error fetching posted jobs:", error);
     res.status(500).json({ message: "An error occurred while fetching jobs." });

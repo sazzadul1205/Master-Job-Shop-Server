@@ -70,4 +70,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+// DELETE: Delete application by ID
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate ObjectId
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid application ID." });
+    }
+
+    const result = await JobCollection.deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Application not found." });
+    }
+
+    res.json({ message: "Application deleted successfully." });
+  } catch (error) {
+    console.error("DELETE /JobApplications/:id error:", error);
+    res.status(500).json({ message: "Server error deleting application." });
+  }
+});
+
 module.exports = router;

@@ -9,31 +9,55 @@ const InternshipCollection = client
 
 // Get Internship(s)
 router.get("/", async (req, res) => {
-  const { id, postedBy } = req.query;
-
+  const { id, postedBy, internshipIds } = req.query;
   let query = {};
 
-  if (id) {
-    try {
-      query._id = new ObjectId(id);
-    } catch {
-      return res.status(400).send({ message: "Invalid id format." });
-    }
-  } else if (postedBy) {
-    query.postedBy = postedBy;
-  }
-
   try {
+    // Single Internship ID
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res
+          .status(400)
+          .json({ message: "Invalid internship ID format." });
+      }
+      query._id = new ObjectId(id);
+    }
+
+    // Multiple Internship IDs (comma-separated string)
+    if (internshipIds) {
+      try {
+        const idsArray = internshipIds.split(",").map((id) => {
+          const trimmed = id.trim();
+          if (!ObjectId.isValid(trimmed)) throw new Error();
+          return new ObjectId(trimmed);
+        });
+        query._id = { $in: idsArray };
+      } catch (err) {
+        return res
+          .status(400)
+          .json({
+            message:
+              "Invalid internshipIds format. Must be a comma-separated list of valid IDs.",
+          });
+      }
+    }
+
+    // Filter by postedBy
+    if (postedBy) {
+      query.postedBy = postedBy;
+    }
+
     const results = await InternshipCollection.find(query).toArray();
 
+    // Return single or multiple results
     if (results.length === 1) {
-      return res.send(results[0]); // Send single object if only one found
+      return res.status(200).json(results[0]);
     } else {
-      return res.send(results); // Send array if 0 or more than 1 found
+      return res.status(200).json(results);
     }
   } catch (error) {
     console.error("Error fetching internships:", error);
-    res.status(500).send({ message: "Error fetching internships", error });
+    res.status(500).json({ message: "Error fetching internships", error });
   }
 });
 

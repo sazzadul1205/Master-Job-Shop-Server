@@ -9,28 +9,42 @@ const MentorshipCollection = client
 
 // Get Mentorship
 router.get("/", async (req, res) => {
-  const { id, postedBy } = req.query;
+  const { id, postedBy, mentorshipIds } = req.query;
+  const query = {};
 
-  let query = {};
-
+  // Single ID
   if (id) {
-    try {
-      query._id = new ObjectId(id);
-    } catch {
-      return res.status(400).send({ message: "Invalid id format." });
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid id format." });
     }
-  } else if (postedBy) {
+    query._id = new ObjectId(id);
+  }
+
+  // Multiple Mentorship IDs (comma-separated)
+  if (mentorshipIds) {
+    try {
+      const idsArray = mentorshipIds.split(",").map((id) => {
+        const trimmed = id.trim();
+        if (!ObjectId.isValid(trimmed)) throw new Error();
+        return new ObjectId(trimmed);
+      });
+      query._id = { $in: idsArray };
+    } catch (err) {
+      return res.status(400).json({
+        message:
+          "Invalid mentorshipIds format. Must be a comma-separated list of valid IDs.",
+      });
+    }
+  }
+
+  // Posted By
+  if (postedBy) {
     query.postedBy = postedBy;
   }
 
   try {
     const results = await MentorshipCollection.find(query).toArray();
-
-    if (results.length === 1) {
-      res.send(results[0]); // Send single object if only one result
-    } else {
-      res.send(results); // Otherwise send array
-    }
+    res.send(results.length === 1 ? results[0] : results);
   } catch (error) {
     console.error("Error fetching mentorship:", error);
     res.status(500).send("Server error.");

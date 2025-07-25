@@ -39,7 +39,9 @@ router.get("/Exists", async (req, res) => {
     const { email, mentorshipId } = req.query;
 
     if (!email || !mentorshipId) {
-      return res.status(400).json({ message: "Missing email or mentorshipId." });
+      return res
+        .status(400)
+        .json({ message: "Missing email or mentorshipId." });
     }
 
     const applicationExists = await MentorshipCollection.findOne({
@@ -70,6 +72,35 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("POST /MentorshipApplications error:", error);
     res.status(500).json({ message: "Server error submitting application." });
+  }
+});
+
+// DELETE: Remove mentorship application by ID
+router.delete("/:id", async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ message: "Missing application ID." });
+  }
+
+  let objectId;
+  try {
+    objectId = new ObjectId(id);
+  } catch (err) {
+    return res.status(400).json({ message: "Invalid ID format." });
+  }
+
+  try {
+    const result = await MentorshipCollection.deleteOne({ _id: objectId });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Application not found." });
+    }
+
+    res.json({ message: "Mentorship application deleted successfully." });
+  } catch (error) {
+    console.error("DELETE /MentorshipApplications/:id error:", error);
+    res.status(500).json({ message: "Server error deleting application." });
   }
 });
 

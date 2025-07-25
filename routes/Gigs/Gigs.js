@@ -7,12 +7,12 @@ const GigsCollection = client.db("Master-Job-Shop").collection("Posted-Gig");
 
 // Get Posted Gig
 router.get("/", async (req, res) => {
-  const { id, postedBy, email } = req.query;
+  const { id, gigIds, postedBy, email } = req.query;
 
   try {
     const query = {};
 
-    // Filter by Gig ID
+    // Single Gig ID
     if (id) {
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ message: "Invalid ID format." });
@@ -20,12 +20,26 @@ router.get("/", async (req, res) => {
       query._id = new ObjectId(id);
     }
 
-    // Filter by PostedBy email
+    // Multiple Gig IDs
+    if (gigIds) {
+      try {
+        const idsArray = gigIds.split(",").map((id) => {
+          if (!ObjectId.isValid(id.trim())) throw new Error();
+          return new ObjectId(id.trim());
+        });
+
+        query._id = { $in: idsArray };
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid gigIds format." });
+      }
+    }
+
+    // Posted by email
     if (postedBy) {
       query.PostedBy = postedBy;
     }
 
-    // Filter by applicant email or related email fields (adjust field name if needed)
+    // Filter by applicant email
     if (email) {
       query["PeopleApplied.email"] = email;
     }
@@ -37,7 +51,6 @@ router.get("/", async (req, res) => {
       return res.status(200).json(results[0]);
     }
 
-    // Return array (empty or multiple)
     return res.status(200).json(results);
   } catch (error) {
     console.error("Error fetching gigs:", error);

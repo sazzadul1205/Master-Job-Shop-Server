@@ -67,4 +67,27 @@ router.post("/", async (req, res) => {
     res.status(500).json({ message: "Server error submitting bid." });
   }
 });
+
+// DELETE: Remove a bid by ID
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID format." });
+    }
+
+    const result = await GigCollection.deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Bid not found." });
+    }
+
+    res.json({ message: "Bid deleted successfully." });
+  } catch (error) {
+    console.error("DELETE /GigBids/:id error:", error);
+    res.status(500).json({ message: "Server error deleting bid." });
+  }
+});
+
 module.exports = router;

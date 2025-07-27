@@ -8,18 +8,35 @@ const EventsCollection = client.db("Master-Job-Shop").collection("Events");
 // Get Events
 router.get("/", async (req, res) => {
   try {
-    const { id, postedBy } = req.query;
+    const { id, postedBy, eventIds } = req.query;
     let query = {};
 
-    // If ID is provided, validate and search by ObjectId
+    // Single Event ID
     if (id) {
       if (!ObjectId.isValid(id)) {
-        return res.status(400).send({ message: "Invalid ID format." });
+        return res.status(400).json({ message: "Invalid ID format." });
       }
       query._id = new ObjectId(id);
     }
 
-    // If postedBy (email) is provided
+    // Multiple Event IDs (comma-separated)
+    if (eventIds) {
+      try {
+        const idsArray = eventIds.split(",").map((id) => {
+          const trimmed = id.trim();
+          if (!ObjectId.isValid(trimmed)) throw new Error();
+          return new ObjectId(trimmed);
+        });
+        query._id = { $in: idsArray };
+      } catch (err) {
+        return res.status(400).json({
+          message:
+            "Invalid eventIds format. Must be a comma-separated list of valid IDs.",
+        });
+      }
+    }
+
+    // Filter by postedBy email
     if (postedBy) {
       query.postedBy = postedBy;
     }
@@ -27,18 +44,14 @@ router.get("/", async (req, res) => {
     const result = await EventsCollection.find(query).toArray();
 
     if (result.length === 0) {
-      return res.status(404).send({ message: "No matching event(s) found." });
+      return res.status(404).json({ message: "No matching event(s) found." });
     }
 
-    // If only one document is found, send it as an object
-    if (result.length === 1) {
-      res.send(result[0]);
-    } else {
-      res.send(result);
-    }
+    // Always return as array
+    res.json(result);
   } catch (error) {
-    console.error("Error fetching upcoming events:", error);
-    res.status(500).send({ message: "Internal Server Error", error });
+    console.error("Error fetching events:", error);
+    res.status(500).json({ message: "Internal Server Error", error });
   }
 });
 

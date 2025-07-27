@@ -7,17 +7,39 @@ const CoursesCollection = client.db("Master-Job-Shop").collection("Courses");
 
 // Get Courses
 router.get("/", async (req, res) => {
-  const { id, postedBy, email } = req.query;
+  const { id, postedBy, email, courseIds } = req.query;
 
   try {
     let query = {};
 
+    // Query by single ID
     if (id) {
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ message: "Invalid ID format." });
       }
       query._id = new ObjectId(id);
-    } else {
+    }
+
+    // Query by multiple course IDs
+    else if (courseIds) {
+      try {
+        const idsArray = courseIds.split(",").map((id) => {
+          const trimmed = id.trim();
+          if (!ObjectId.isValid(trimmed)) throw new Error();
+          return new ObjectId(trimmed);
+        });
+
+        query._id = { $in: idsArray };
+      } catch {
+        return res.status(400).send({
+          message:
+            "Invalid courseIds format. Must be a comma-separated list of valid MongoDB ObjectIDs.",
+        });
+      }
+    }
+
+    // Additional filters (only when courseIds/id are not used)
+    else {
       if (postedBy) {
         query.postedBy = postedBy;
       }
@@ -28,11 +50,11 @@ router.get("/", async (req, res) => {
 
     const results = await CoursesCollection.find(query).toArray();
 
-    if (results.length === 1) {
-      return res.send(results[0]); // Send single object if only one found
-    } else {
-      return res.send(results); // Send array otherwise
+    if (results.length === 1 && (id || courseIds)) {
+      return res.send(results[0]); // return single object when explicitly fetching single(s)
     }
+
+    return res.send(results);
   } catch (error) {
     console.error("Error fetching courses:", error);
     res.status(500).send({ message: "Error fetching courses", error });

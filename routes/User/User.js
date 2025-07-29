@@ -62,10 +62,55 @@ router.get("/CheckEmail", async (req, res) => {
   }
 });
 
+// Add Document to User's documents array
+router.put("/AddDocument/:id", async (req, res) => {
+  const id = req.params.id;
+  const newDoc = req.body;
+
+  if (!newDoc.name) {
+    return res.status(400).send({ message: "Document name is required" });
+  }
+
+  try {
+    const filter = { _id: new ObjectId(id) };
+
+    // First, check if a document with the same name already exists in the user's documents array
+    const user = await UsersCollection.findOne(filter);
+
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    if (user.documents && Array.isArray(user.documents)) {
+      const nameExists = user.documents.some((doc) => doc.name === newDoc.name);
+      if (nameExists) {
+        return res
+          .status(400)
+          .send({ message: "Document name already exists" });
+      }
+    }
+
+    // Add the new document to the documents array (create array if it doesn't exist)
+    const updateResult = await UsersCollection.updateOne(
+      filter,
+      { $push: { documents: newDoc } },
+      { upsert: false } // don't create new user if not found
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    res.send({ message: "Document added successfully", updateResult });
+  } catch (error) {
+    res.status(500).send({ message: "Failed to add document", error });
+  }
+});
+
 // Update User by ID (PUT)
 router.put("/:id", async (req, res) => {
-  const id = req.params.id; // Get the user ID from the URL params
-  const updatedUser = req.body; // Get the updated user data from the request body
+  const id = req.params.id;
+  const updatedUser = req.body;
 
   try {
     // Create a filter to find the user by ID

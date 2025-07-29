@@ -22,8 +22,8 @@ router.get("/", async (req, res) => {
     // Multiple Event IDs (comma-separated)
     if (eventIds) {
       try {
-        const idsArray = eventIds.split(",").map((id) => {
-          const trimmed = id.trim();
+        const idsArray = eventIds.split(",").map((singleId) => {
+          const trimmed = singleId.trim();
           if (!ObjectId.isValid(trimmed)) throw new Error();
           return new ObjectId(trimmed);
         });
@@ -31,7 +31,7 @@ router.get("/", async (req, res) => {
       } catch (err) {
         return res.status(400).json({
           message:
-            "Invalid eventIds format. Must be a comma-separated list of valid IDs.",
+            "Invalid eventIds format. Must be a comma-separated list of valid ObjectIds.",
         });
       }
     }
@@ -43,12 +43,17 @@ router.get("/", async (req, res) => {
 
     const result = await EventsCollection.find(query).toArray();
 
-    if (result.length === 0) {
-      return res.status(404).json({ message: "No matching event(s) found." });
+    if (!result || result.length === 0) {
+      return res.status(404).json({ message: "No events found." });
     }
 
-    // Always return as array
-    res.json(result);
+    // Return single object if only one match
+    if (result.length === 1) {
+      return res.status(200).json(result[0]);
+    }
+
+    // Return full list
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching events:", error);
     res.status(500).json({ message: "Internal Server Error", error });

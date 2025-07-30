@@ -140,6 +140,59 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+// PUT /Users/ToggleStar/:id
+router.put("/ToggleStar/:id", async (req, res) => {
+  const userId = req.params.id;
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).send({ message: "Document name is required" });
+  }
+
+  try {
+    const user = await UsersCollection.findOne({ _id: new ObjectId(userId) });
+    if (!user) return res.status(404).send({ message: "User not found" });
+
+    // Count how many are currently starred
+    const starredDocs = user.documents?.filter((doc) => doc.starred) || [];
+
+    // Find target document
+    const targetDoc = user.documents?.find((doc) => doc.name === name);
+    if (!targetDoc)
+      return res.status(404).send({ message: "Document not found" });
+
+    // Toggle logic
+    let newStarredValue = !targetDoc.starred;
+
+    // Enforce max 3 starred documents
+    if (newStarredValue && starredDocs.length >= 3) {
+      return res
+        .status(400)
+        .send({ message: "Cannot star more than 3 documents" });
+    }
+
+    // Update only the matched document's starred field
+    const updateResult = await UsersCollection.updateOne(
+      { _id: new ObjectId(userId), "documents.name": name },
+      { $set: { "documents.$.starred": newStarredValue } }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return res
+        .status(404)
+        .send({ message: "Document not found or user not found" });
+    }
+
+    res.status(200).send({
+      message: `Document '${name}' starred status updated to ${newStarredValue}`,
+      starred: newStarredValue,
+    });
+  } catch (error) {
+    console.error("Error toggling starred:", error);
+    res.status(500).send({ message: "Internal server error", error });
+  }
+});
+
 // Create a New User
 router.post("/", async (req, res) => {
   try {
@@ -167,6 +220,33 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("POST /Users error:", error);
     res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// DELETE /DeleteDocument/:id
+router.delete("/DeleteDocument/:id", async (req, res) => {
+  const id = req.params.id;
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).send({ message: "Document name is required" });
+  }
+
+  try {
+    const filter = { _id: new ObjectId(id) };
+    const update = { $pull: { documents: { name } } };
+
+    const result = await UsersCollection.updateOne(filter, update);
+
+    if (result.modifiedCount === 0) {
+      return res
+        .status(404)
+        .send({ message: "Document not found or already deleted" });
+    }
+
+    res.send({ message: "Document deleted successfully", result });
+  } catch (error) {
+    res.status(500).send({ message: "Failed to delete document", error });
   }
 });
 

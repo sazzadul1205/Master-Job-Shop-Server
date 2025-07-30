@@ -240,6 +240,58 @@ router.put("/AddSkill/:id", async (req, res) => {
   }
 });
 
+// Update or Create Preferences
+router.put("/EditPreferences/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { desiredRole, jobType, preferredLocation, salaryFrom, salaryTo } =
+      req.body;
+
+    if (
+      !desiredRole ||
+      !jobType ||
+      !preferredLocation ||
+      !salaryFrom ||
+      !salaryTo
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Missing required preference fields." });
+    }
+
+    const filter = { _id: new ObjectId(userId) };
+
+    const updateDoc = {
+      $set: {
+        preferences: {
+          desiredRole,
+          jobType,
+          preferredLocation,
+          salaryFrom,
+          salaryTo,
+        },
+      },
+    };
+
+    const result = await UsersCollection.updateOne(filter, updateDoc, {
+      upsert: false,
+    });
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({
+      message: "Preferences updated successfully.",
+      modifiedCount: result.modifiedCount,
+      acknowledged: result.acknowledged,
+    });
+  } catch (error) {
+    console.error("PUT /EditPreferences/:id error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // Create a New User
 router.post("/", async (req, res) => {
   try {

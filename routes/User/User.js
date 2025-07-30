@@ -292,6 +292,58 @@ router.put("/EditPreferences/:id", async (req, res) => {
   }
 });
 
+// PUT Edit Personal Information
+router.put("/EditPersonalInformation/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { phone, availability, experienceLevel, socials } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const filter = { _id: new ObjectId(id) };
+
+    const updateFields = {};
+    if (phone !== undefined) updateFields.phone = phone;
+    if (availability !== undefined) updateFields.availability = availability;
+    if (experienceLevel !== undefined)
+      updateFields.experienceLevel = experienceLevel;
+    if (socials !== undefined) updateFields.socials = socials;
+
+    const updateDoc = { $set: updateFields };
+
+    const updateResult = await UsersCollection.updateOne(filter, updateDoc);
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const updatedUser = await UsersCollection.findOne(filter);
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found after update." });
+    }
+
+    const getSocialLink = (platform) =>
+      (updatedUser.socials || []).find((s) => s.platform === platform)?.url ||
+      "";
+
+    res.status(200).json({
+      email: updatedUser.email || "",
+      phone: updatedUser.phone || "",
+      availability: updatedUser.availability || "",
+      experienceLevel: updatedUser.experienceLevel || "",
+      portfolio: getSocialLink("portfolio"),
+      linkedin: getSocialLink("linkedin"),
+      github: getSocialLink("github"),
+    });
+  } catch (error) {
+    console.error("PUT /Users/EditPersonalInformation/:id error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // Create a New User
 router.post("/", async (req, res) => {
   try {

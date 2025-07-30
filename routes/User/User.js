@@ -193,6 +193,53 @@ router.put("/ToggleStar/:id", async (req, res) => {
   }
 });
 
+// Add a skill to a user profile (no duplicates, auto-initializes skills array if missing)
+router.put("/AddSkill/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { skill } = req.body;
+
+    // Validate skill input
+    if (!skill || typeof skill !== "string") {
+      return res
+        .status(400)
+        .json({ message: "Skill is required and must be a string." });
+    }
+
+    // Find user by ID
+    const user = await UsersCollection.findOne({ _id: new ObjectId(id) });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Default to empty array if skills doesn't exist
+    const existingSkills = user.skills || [];
+
+    // Prevent duplicates
+    if (existingSkills.includes(skill)) {
+      return res.status(409).json({ message: "Skill already exists." });
+    }
+
+    // Add skill to list
+    const updatedSkills = [...existingSkills, skill];
+
+    // Save updated skills array to user document
+    await UsersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { skills: updatedSkills } }
+    );
+
+    // Respond with updated skills
+    res
+      .status(200)
+      .json({ message: "Skill added successfully.", skills: updatedSkills });
+  } catch (err) {
+    console.error("PUT /AddSkill/:id error:", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // Create a New User
 router.post("/", async (req, res) => {
   try {
@@ -247,6 +294,53 @@ router.delete("/DeleteDocument/:id", async (req, res) => {
     res.send({ message: "Document deleted successfully", result });
   } catch (error) {
     res.status(500).send({ message: "Failed to delete document", error });
+  }
+});
+
+// DELETE Remove a skill from a user's profile
+router.delete("/DeleteSkill/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { skill } = req.body;
+
+    // Validate input
+    if (!skill || typeof skill !== "string") {
+      return res
+        .status(400)
+        .json({ message: "Skill is required and must be a string." });
+    }
+
+    // Find the user
+    const user = await UsersCollection.findOne({ _id: new ObjectId(id) });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const existingSkills = user.skills || [];
+
+    // Ensure the skill exists
+    if (!existingSkills.includes(skill)) {
+      return res
+        .status(404)
+        .json({ message: "Skill not found in user's skill list." });
+    }
+
+    // Filter out the skill
+    const updatedSkills = existingSkills.filter((s) => s !== skill);
+
+    // Update the user document
+    await UsersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { skills: updatedSkills } }
+    );
+
+    res
+      .status(200)
+      .json({ message: "Skill removed successfully.", skills: updatedSkills });
+  } catch (err) {
+    console.error("DELETE /DeleteSkill/:id error:", err);
+    res.status(500).json({ message: "Internal server error." });
   }
 });
 

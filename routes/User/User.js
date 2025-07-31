@@ -391,6 +391,55 @@ router.put("/EditHeader/:id", async (req, res) => {
   }
 });
 
+// PUT Toggle Setting Field (by User ID)
+router.put("/ToggleSetting/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { field, value } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID." });
+    }
+
+    const validFields = [
+      "emailUpdates",
+      "twoFactorAuth",
+      "isProfilePublic",
+      "googleConnected",
+      "facebookConnected",
+      "notificationsEnabled",
+    ];
+
+    if (!field || typeof value !== "boolean") {
+      return res
+        .status(400)
+        .json({ message: "Field and boolean value are required." });
+    }
+
+    if (!validFields.includes(field)) {
+      return res.status(400).json({ message: "Invalid field name." });
+    }
+
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = { $set: { [field]: value } };
+
+    const updateResult = await UsersCollection.updateOne(filter, updateDoc);
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const updatedUser = await UsersCollection.findOne(filter);
+    res.status(200).json({
+      message: `${field} updated successfully.`,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("PUT /Users/ToggleSetting/:id error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // Create a New User
 router.post("/", async (req, res) => {
   try {

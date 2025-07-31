@@ -559,7 +559,7 @@ router.delete("/SoftDelete/:id", async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    const fieldsToPreserve = ["_id", "email"];
+    const fieldsToPreserve = ["_id", "email", "role"];
     const fieldsToUnset = {};
 
     Object.keys(user).forEach((key) => {

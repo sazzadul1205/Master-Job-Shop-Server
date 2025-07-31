@@ -344,6 +344,53 @@ router.put("/EditPersonalInformation/:id", async (req, res) => {
   }
 });
 
+// PUT Update or create header fields
+router.put("/EditHeader/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { fullName, title, location, bio, profileImage } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const filter = { _id: new ObjectId(id) };
+
+    const updateFields = {};
+    if (fullName !== undefined) updateFields.fullName = fullName;
+    if (title !== undefined) updateFields.title = title;
+    if (location !== undefined) updateFields.location = location;
+    if (bio !== undefined) updateFields.bio = bio;
+    if (profileImage !== undefined) updateFields.profileImage = profileImage;
+
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
+    const updateDoc = { $set: updateFields };
+
+    const updateResult = await UsersCollection.updateOne(filter, updateDoc);
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const updatedUser = await UsersCollection.findOne(filter);
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found after update." });
+    }
+
+    res.status(200).json({
+      message: "Header updated successfully.",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("PUT /Users/EditHeader/:id error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // Create a New User
 router.post("/", async (req, res) => {
   try {

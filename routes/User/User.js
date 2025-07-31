@@ -107,7 +107,7 @@ router.put("/AddDocument/:id", async (req, res) => {
   }
 });
 
-// Update User by ID (PUT)
+// PUT : Update User by ID
 router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updatedUser = req.body;
@@ -137,6 +137,43 @@ router.put("/:id", async (req, res) => {
   } catch (error) {
     // Send error response in case of failure
     res.status(500).send({ message: "Failed to update user", error });
+  }
+});
+
+// PUT : Reactivate User Account
+router.put("/ReActivate/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reinstatedReason } = req.body;
+
+    if (!reinstatedReason) {
+      return res
+        .status(400)
+        .json({ message: "Reinstated reason is required." });
+    }
+
+    const result = await UsersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $unset: {
+          deleteStatus: "",
+          deletedAt: "",
+        },
+        $set: {
+          reinstatedAt: new Date(),
+          reinstatedReason,
+        },
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({ message: "Account successfully reactivated." });
+  } catch (error) {
+    console.error("PUT /ReActivate/:id error:", error);
+    res.status(500).json({ message: "Internal server error." });
   }
 });
 

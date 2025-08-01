@@ -50,6 +50,9 @@ const PDFUpload = require("./routes/PDFUpload/PDFUpload");
 // Insights API routes
 const AboutUs = require("./routes/AboutUs/AboutUs");
 
+// become employer API route
+const EmployerRequest = require("./routes/EmployerRequest/EmployerRequest");
+
 require("dotenv").config();
 const app = express();
 
@@ -121,6 +124,8 @@ app.use("/Internship", Internship);
 app.use("/PDFUpload", PDFUpload);
 
 app.use("/AboutUs", AboutUs);
+
+app.use("/EmployerRequest", EmployerRequest);
 
 // Root health-check
 app.get("/", (req, res) => {

@@ -7,11 +7,18 @@ const MentorRequestCollection = client
   .db("Master-Job-Shop")
   .collection("MentorRequest");
 
-// GET - Fetch all mentor requests (optional filtering)
+// GET - Fetch all mentor requests
 router.get("/", async (req, res) => {
   try {
-    const { userId, userEmail, status } = req.query;
+    const { _id, userId, userEmail, status } = req.query;
     const query = {};
+
+    if (_id) {
+      if (!ObjectId.isValid(_id)) {
+        return res.status(400).json({ message: "Invalid _id format" });
+      }
+      query._id = new ObjectId(_id);
+    }
 
     if (userId) query.userId = userId;
     if (userEmail) query.userEmail = userEmail;

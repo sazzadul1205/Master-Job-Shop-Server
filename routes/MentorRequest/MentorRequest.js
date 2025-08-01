@@ -37,7 +37,8 @@ router.post("/", async (req, res) => {
   try {
     const requestData = req.body;
 
-    if (!requestData || !requestData.contactEmail || !requestData.contactName) {
+    // Match frontend field names
+    if (!requestData || !requestData.email || !requestData.fullName) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -46,7 +47,7 @@ router.post("/", async (req, res) => {
 
     const result = await MentorRequestCollection.insertOne(requestData);
 
-    res.status(201).json({
+    res.status(200).json({
       message: "Mentor request submitted successfully",
       insertedId: result.insertedId,
     });

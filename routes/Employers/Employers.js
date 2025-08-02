@@ -8,16 +8,32 @@ const EmployersCollection = client
   .db("Master-Job-Shop")
   .collection("Employers");
 
-// GET - Fetch all employers or filter by query (e.g., email or id)
+// GET - Fetch all employers or a single one by _id or email
 router.get("/", async (req, res) => {
   try {
     const { _id, email } = req.query;
-    const query = {};
 
-    if (_id) query._id = new ObjectId(_id);
-    if (email) query.email = email;
+    // If a unique identifier is provided, fetch one document
+    if (_id) {
+      const employer = await EmployersCollection.findOne({
+        _id: new ObjectId(_id),
+      });
+      if (!employer) {
+        return res.status(404).json({ message: "Employer not found" });
+      }
+      return res.status(200).json(employer);
+    }
 
-    const employers = await EmployersCollection.find(query).toArray();
+    if (email) {
+      const employer = await EmployersCollection.findOne({ email });
+      if (!employer) {
+        return res.status(404).json({ message: "Employer not found" });
+      }
+      return res.status(200).json(employer);
+    }
+
+    // If no unique identifier, return all documents
+    const employers = await EmployersCollection.find({}).toArray();
     res.status(200).json(employers);
   } catch (error) {
     console.error("Error fetching employers:", error);

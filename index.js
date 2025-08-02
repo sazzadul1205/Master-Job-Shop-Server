@@ -56,6 +56,9 @@ const EmployerRequest = require("./routes/EmployerRequest/EmployerRequest");
 // Become Mentor API route
 const MentorRequest = require("./routes/MentorRequest/MentorRequest");
 
+// Employer API routes
+const Employers = require("./routes/Employers/Employers");
+
 require("dotenv").config();
 const app = express();
 
@@ -131,6 +134,8 @@ app.use("/AboutUs", AboutUs);
 app.use("/EmployerRequest", EmployerRequest);
 
 app.use("/MentorRequest", MentorRequest);
+
+app.use("/Employers", Employers);
 
 // Root health-check
 app.get("/", (req, res) => {

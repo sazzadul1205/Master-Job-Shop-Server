@@ -8,7 +8,7 @@ const JobsCollection = client.db("Master-Job-Shop").collection("Posted-Job");
 // GET: Fetch Posted Jobs
 router.get("/", async (req, res) => {
   try {
-    const { id, jobIds, companyCode, email } = req.query;
+    const { id, jobIds, companyCode, postedBy } = req.query; // changed here
     const query = {};
 
     // Handle single job by id
@@ -43,9 +43,9 @@ router.get("/", async (req, res) => {
       query.companyCode = companyCode;
     }
 
-    // Filter by postedBy.email
-    if (email) {
-      query["postedBy.email"] = email;
+    // Filter by postedBy (exact match)
+    if (postedBy) {
+      query.postedBy = postedBy;
     }
 
     const jobs = await JobsCollection.find(query).toArray();

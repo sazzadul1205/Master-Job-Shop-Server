@@ -7,12 +7,14 @@ const JobCollection = client
   .db("Master-Job-Shop")
   .collection("Job-Applications");
 
-// GET: Fetch all or filtered applications
+// GET: Fetch all or filtered job applications
 router.get("/", async (req, res) => {
   try {
-    const { id, jobId, email, phone } = req.query;
+    // Destructure query parameters from the request
+    const { id, jobId, email, phone, jobIds } = req.query;
     const query = {};
 
+    // If a single application ID is provided, validate and convert it to ObjectId
     if (id) {
       try {
         query._id = new ObjectId(id);
@@ -20,12 +22,33 @@ router.get("/", async (req, res) => {
         return res.status(400).json({ message: "Invalid ID format." });
       }
     }
-    if (jobId) query.jobId = jobId;
-    if (email) query.email = email;
-    if (phone) query.phone = phone;
 
+    // If a single jobId is provided, add it to the query
+    if (jobId) {
+      query.jobId = jobId;
+    }
+
+    // If email is provided, add it to the query
+    if (email) {
+      query.email = email;
+    }
+
+    // If phone is provided, add it to the query
+    if (phone) {
+      query.phone = phone;
+    }
+
+    // If multiple job IDs are provided as an array (jobIds[]), handle it
+    if (jobIds) {
+      // Ensure jobIds is always treated as an array
+      const jobIdArray = Array.isArray(jobIds) ? jobIds : [jobIds];
+      query.jobId = { $in: jobIdArray }; // Match any jobId in the array
+    }
+
+    // Query the database with the built query object
     const results = await JobCollection.find(query).toArray();
 
+    // If only one result found, return the object directly, else return array
     res.json(results.length === 1 ? results[0] : results);
   } catch (error) {
     console.error("GET /JobApplications error:", error);

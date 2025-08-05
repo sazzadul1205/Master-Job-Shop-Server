@@ -93,6 +93,41 @@ router.post("/", async (req, res) => {
   }
 });
 
+// PUT: Update status of an application by ID
+router.put("/Status/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate ObjectId
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid application ID." });
+    }
+
+    // Validate status presence
+    if (typeof status !== "string" || !status.trim()) {
+      return res.status(400).json({
+        message: "Status is required and must be a non-empty string.",
+      });
+    }
+
+    // Update status field (set or create)
+    const result = await JobCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: status.trim() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Application not found." });
+    }
+
+    res.json({ message: "Status updated successfully." });
+  } catch (error) {
+    console.error("PUT /JobApplications/:id/status error:", error);
+    res.status(500).json({ message: "Server error updating status." });
+  }
+});
+
 // DELETE: Delete application by ID
 router.delete("/:id", async (req, res) => {
   try {

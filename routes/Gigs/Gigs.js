@@ -141,7 +141,7 @@ router.put("/:id", async (req, res) => {
   const updatedData = req.body;
 
   if (!id || !updatedData || typeof updatedData !== "object") {
-    return res.status(400).send({
+    return res.status(400).json({
       message: "Invalid request. Gig ID and update data are required.",
     });
   }
@@ -150,22 +150,23 @@ router.put("/:id", async (req, res) => {
     const query = { _id: new ObjectId(id) };
     const update = { $set: updatedData };
 
-    const result = await PostedGigCollection.updateOne(query, update);
+    const result = await GigsCollection.updateOne(query, update);
 
     if (result.matchedCount === 0) {
-      return res.status(404).send({ message: "Gig not found." });
+      return res.status(404).json({ message: "Gig not found." });
     }
 
     if (result.modifiedCount === 0) {
+      // No changes detected
       return res
         .status(200)
-        .send({ message: "No changes were made to the gig." });
+        .json({ message: "No changes were made to the gig." });
     }
 
-    res.status(200).send({ message: "Gig updated successfully!" });
+    return res.status(200).json({ message: "Gig updated successfully!" });
   } catch (error) {
     console.error("Error updating the gig:", error);
-    res.status(500).send({
+    return res.status(500).json({
       message: "An error occurred while updating the gig.",
       error: error.message,
     });
@@ -191,7 +192,7 @@ router.patch("/:id", async (req, res) => {
     const query = { _id: new ObjectId(gigId) };
     const update = { $set: updateFields };
 
-    const result = await PostedGigCollection.updateOne(query, update);
+    const result = await GigsCollection.updateOne(query, update);
 
     if (result.matchedCount === 0) {
       return res.status(404).send({ message: "Gig not found." });
@@ -236,7 +237,7 @@ router.delete("/Bidder/:id", async (req, res) => {
       },
     };
 
-    const result = await PostedGigCollection.updateOne(query, update);
+    const result = await GigsCollection.updateOne(query, update);
 
     if (result.modifiedCount > 0) {
       res.status(200).send({ message: "Bidder removed successfully." });
@@ -265,7 +266,7 @@ router.delete("/:id", async (req, res) => {
 
   try {
     const query = { _id: new ObjectId(id) };
-    const result = await PostedGigCollection.deleteOne(query);
+    const result = await GigsCollection.deleteOne(query);
 
     if (result.deletedCount > 0) {
       res.status(200).send({ message: "Gig deleted successfully!" });

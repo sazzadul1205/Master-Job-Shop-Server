@@ -132,9 +132,6 @@ router.put("/Status/:id", async (req, res) => {
 router.put("/Accepted/:id", async (req, res) => {
   const { id } = req.params;
 
-  // Destructure optional interview details from body
-  const { interviewTime, mode, platform, notes } = req.body;
-
   // Validate ObjectId
   if (!ObjectId.isValid(id)) {
     return res.status(400).json({ message: "Invalid application ID." });
@@ -143,17 +140,21 @@ router.put("/Accepted/:id", async (req, res) => {
   try {
     const filter = { _id: new ObjectId(id) };
 
-    // Build the interview object dynamically
-    const interview = {};
-    if (interviewTime) interview.interviewTime = interviewTime;
-    if (mode) interview.mode = mode;
-    if (platform) interview.platform = platform;
-    if (notes) interview.notes = notes;
+    // Destructure nested interview object properly
+    const { interview } = req.body || {};
+    const { interviewTime, mode, platform, notes } = interview || {};
+
+    // Build interview object dynamically to avoid empty fields
+    const updatedInterview = {};
+    if (interviewTime) updatedInterview.interviewTime = interviewTime;
+    if (mode) updatedInterview.mode = mode;
+    if (platform) updatedInterview.platform = platform;
+    if (notes) updatedInterview.notes = notes;
 
     const updateDoc = {
       $set: {
         status: "Accepted",
-        interview,
+        interview: updatedInterview,
         updatedAt: new Date(),
       },
     };

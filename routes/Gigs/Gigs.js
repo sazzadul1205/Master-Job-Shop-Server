@@ -112,23 +112,26 @@ router.post("/Apply/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   const gigData = req.body;
 
-  if (!gigData || !gigData.title || !gigData.PostedBy) {
-    return res
-      .status(400)
-      .send({ message: "Invalid gig data. Title and PostedBy are required." });
+  if (!gigData || !gigData.title || !gigData.postedBy) {
+    return res.status(400).send({
+      message: "Invalid gig data. 'title' and 'postedBy' are required.",
+    });
   }
 
   try {
+    // Insert into database
     const result = await GigsCollection.insertOne(gigData);
+
     res.status(201).send({
       message: "Gig posted successfully!",
       insertedId: result.insertedId,
     });
   } catch (error) {
     console.error("Error posting gig:", error);
-    res
-      .status(500)
-      .send({ message: "Failed to post gig", error: error.message });
+    res.status(500).send({
+      message: "Failed to post gig",
+      error: error.message,
+    });
   }
 });
 

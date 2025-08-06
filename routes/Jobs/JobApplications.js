@@ -128,6 +128,54 @@ router.put("/Status/:id", async (req, res) => {
   }
 });
 
+// PUT: Accept a job application and store interview details
+router.put("/Accepted/:id", async (req, res) => {
+  const { id } = req.params;
+
+  // Destructure optional interview details from body
+  const { interviewTime, mode, platform, notes } = req.body;
+
+  // Validate ObjectId
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid application ID." });
+  }
+
+  try {
+    const filter = { _id: new ObjectId(id) };
+
+    // Build the interview object dynamically
+    const interview = {};
+    if (interviewTime) interview.interviewTime = interviewTime;
+    if (mode) interview.mode = mode;
+    if (platform) interview.platform = platform;
+    if (notes) interview.notes = notes;
+
+    const updateDoc = {
+      $set: {
+        status: "Accepted",
+        interview,
+        updatedAt: new Date(),
+      },
+    };
+
+    const result = await JobCollection.updateOne(filter, updateDoc);
+
+    if (result.modifiedCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "Application not found or no changes made." });
+    }
+
+    res.json({
+      message: "Application accepted and interview details stored.",
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("PUT /Accepted/:id error:", error);
+    res.status(500).json({ message: "Server error updating application." });
+  }
+});
+
 // DELETE: Delete application by ID
 router.delete("/:id", async (req, res) => {
   try {

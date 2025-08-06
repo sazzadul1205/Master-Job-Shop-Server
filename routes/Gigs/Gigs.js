@@ -36,7 +36,7 @@ router.get("/", async (req, res) => {
 
     // Posted by email
     if (postedBy) {
-      query.PostedBy = postedBy;
+      query["postedBy.email"] = postedBy;
     }
 
     // Filter by applicant email

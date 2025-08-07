@@ -87,6 +87,38 @@ router.post("/", async (req, res) => {
   }
 });
 
+// PUT: Update status of an Bid by ID
+router.put("/Status/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid Bid ID." });
+    }
+
+    if (typeof status !== "string" || !status.trim()) {
+      return res.status(400).json({
+        message: "Status is required and must be a non-empty string.",
+      });
+    }
+
+    const result = await GigCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: status.trim() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Bid not found." });
+    }
+
+    res.json({ message: "Status updated successfully." });
+  } catch (error) {
+    console.error("PUT /Status/:id error:", error);
+    res.status(500).json({ message: "Server error updating status." });
+  }
+});
+
 // DELETE: Remove a bid by ID
 router.delete("/:id", async (req, res) => {
   try {

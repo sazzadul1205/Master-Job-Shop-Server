@@ -119,6 +119,55 @@ router.put("/Status/:id", async (req, res) => {
   }
 });
 
+// PUT: Accept a job Bid and store interview details
+router.put("/Accepted/:id", async (req, res) => {
+  const { id } = req.params;
+
+  // Validate ObjectId
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid Bid ID." });
+  }
+
+  try {
+    const filter = { _id: new ObjectId(id) };
+
+    // Destructure nested interview object properly
+    const { interview } = req.body || {};
+    const { interviewTime, mode, platform, notes } = interview || {};
+
+    // Build interview object dynamically to avoid empty fields
+    const updatedInterview = {};
+    if (interviewTime) updatedInterview.interviewTime = interviewTime;
+    if (mode) updatedInterview.mode = mode;
+    if (platform) updatedInterview.platform = platform;
+    if (notes) updatedInterview.notes = notes;
+
+    const updateDoc = {
+      $set: {
+        status: "Accepted",
+        interview: updatedInterview,
+        updatedAt: new Date(),
+      },
+    };
+
+    const result = await GigCollection.updateOne(filter, updateDoc);
+
+    if (result.modifiedCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "Bid not found or no changes made." });
+    }
+
+    res.json({
+      message: "Bid accepted and interview details stored.",
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("PUT /Accepted/:id error:", error);
+    res.status(500).json({ message: "Server error updating Bid." });
+  }
+});
+
 // DELETE: Remove a bid by ID
 router.delete("/:id", async (req, res) => {
   try {

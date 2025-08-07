@@ -8,9 +8,10 @@ const GigCollection = client.db("Master-Job-Shop").collection("Gig-Bids");
 // GET: Fetch all or filtered bids
 router.get("/", async (req, res) => {
   try {
-    const { id, gigId, email, phone } = req.query;
+    const { id, email, phone, gigId, gigIds } = req.query;
     const query = {};
 
+    // Handle single _id
     if (id) {
       try {
         query._id = new ObjectId(id);
@@ -18,9 +19,27 @@ router.get("/", async (req, res) => {
         return res.status(400).json({ message: "Invalid ID format." });
       }
     }
-    if (gigId) query.gigId = gigId;
-    if (email) query.email = email;
-    if (phone) query.phone = phone;
+
+    // Handle single gigId (string)
+    if (gigId) {
+      query.gigId = gigId;
+    }
+
+    // If email is provided, add it to the query
+    if (email) {
+      query.email = email;
+    }
+
+    // If phone is provided, add it to the query
+    if (phone) {
+      query.phone = phone;
+    }
+
+    // If multiple gig IDs are provided as an array (gigIds[]), handle it
+    if (gigIds) {
+      const gigIdArray = Array.isArray(gigIds) ? gigIds : [gigIds];
+      query.gigId = { $in: gigIdArray };
+    }
 
     const results = await GigCollection.find(query).toArray();
 

@@ -75,6 +75,90 @@ router.post("/", async (req, res) => {
   }
 });
 
+// PUT: Update status of an application by ID
+router.put("/Status/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate ObjectId
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid application ID." });
+    }
+
+    // Validate status presence
+    if (typeof status !== "string" || !status.trim()) {
+      return res.status(400).json({
+        message: "Status is required and must be a non-empty string.",
+      });
+    }
+
+    // Update status field (set or create)
+    const result = await InternshipCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: status.trim() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Application not found." });
+    }
+
+    res.json({ message: "Status updated successfully." });
+  } catch (error) {
+    console.error("PUT /JobApplications/:id/status error:", error);
+    res.status(500).json({ message: "Server error updating status." });
+  }
+});
+
+// PUT: Accept a job application and store interview details
+router.put("/Accepted/:id", async (req, res) => {
+  const { id } = req.params;
+
+  // Validate ObjectId
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid application ID." });
+  }
+
+  try {
+    const filter = { _id: new ObjectId(id) };
+
+    // Destructure nested interview object properly
+    const { interview } = req.body || {};
+    const { interviewTime, mode, platform, notes } = interview || {};
+
+    // Build interview object dynamically to avoid empty fields
+    const updatedInterview = {};
+    if (interviewTime) updatedInterview.interviewTime = interviewTime;
+    if (mode) updatedInterview.mode = mode;
+    if (platform) updatedInterview.platform = platform;
+    if (notes) updatedInterview.notes = notes;
+
+    const updateDoc = {
+      $set: {
+        status: "Accepted",
+        interview: updatedInterview,
+        updatedAt: new Date(),
+      },
+    };
+
+    const result = await InternshipCollection.updateOne(filter, updateDoc);
+
+    if (result.modifiedCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "Application not found or no changes made." });
+    }
+
+    res.json({
+      message: "Application accepted and interview details stored.",
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("PUT /Accepted/:id error:", error);
+    res.status(500).json({ message: "Server error updating application." });
+  }
+});
+
 // DELETE: Remove application by ID
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;

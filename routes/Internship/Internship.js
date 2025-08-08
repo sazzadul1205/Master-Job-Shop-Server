@@ -33,18 +33,16 @@ router.get("/", async (req, res) => {
         });
         query._id = { $in: idsArray };
       } catch (err) {
-        return res
-          .status(400)
-          .json({
-            message:
-              "Invalid internshipIds format. Must be a comma-separated list of valid IDs.",
-          });
+        return res.status(400).json({
+          message:
+            "Invalid internshipIds format. Must be a comma-separated list of valid IDs.",
+        });
       }
     }
 
-    // Filter by postedBy
+    // Posted by email
     if (postedBy) {
-      query.postedBy = postedBy;
+      query["postedBy.email"] = postedBy;
     }
 
     const results = await InternshipCollection.find(query).toArray();

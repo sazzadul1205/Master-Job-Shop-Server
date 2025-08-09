@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
+const crypto = require("crypto");
 
 const EventCollection = client
   .db("Master-Job-Shop")
@@ -93,6 +94,63 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("POST /EventApplications error:", error);
     res.status(500).json({ message: "Server error submitting application." });
+  }
+});
+
+router.patch("/Status/Accept/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const objectId = new ObjectId(id);
+
+    // Generate 16 bytes (128 bits) random hex string => 32 hex chars
+    const uniqueCode = crypto.randomBytes(16).toString("hex");
+
+    const updateResult = await EventCollection.updateOne(
+      { _id: objectId },
+      {
+        $set: {
+          status: "Accepted",
+          acceptedAt: new Date(),
+          acceptCode: uniqueCode,
+        },
+        $unset: { rejectedAt: "" },
+      }
+    );
+
+    if (updateResult.matchedCount === 0)
+      return res.status(404).json({ message: "Application not found." });
+
+    res.json({
+      message: "Application marked as Accepted.",
+      acceptCode: uniqueCode,
+    });
+  } catch (err) {
+    console.error("Error accepting application:", err);
+    res.status(400).json({ message: "Invalid ID or server error." });
+  }
+});
+
+// Reject route
+router.patch("/Status/Reject/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const objectId = new ObjectId(id);
+
+    const updateResult = await EventCollection.updateOne(
+      { _id: objectId },
+      {
+        $set: { status: "Rejected", rejectedAt: new Date() },
+        $unset: { acceptedAt: "", acceptCode: "" },
+      }
+    );
+
+    if (updateResult.matchedCount === 0)
+      return res.status(404).json({ message: "Application not found." });
+
+    res.json({ message: "Application marked as Rejected." });
+  } catch (err) {
+    console.error("Error rejecting application:", err);
+    res.status(400).json({ message: "Invalid ID or server error." });
   }
 });
 

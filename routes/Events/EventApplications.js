@@ -10,9 +10,11 @@ const EventCollection = client
 // GET: Fetch all or filtered applications
 router.get("/", async (req, res) => {
   try {
-    const { id, eventId, email, phone } = req.query;
+    // Destructure query parameters from the request
+    const { id, eventId, eventIds, email, phone } = req.query;
     const query = {};
 
+    // If a single application ID is provided, validate and convert it to ObjectId
     if (id) {
       try {
         query._id = new ObjectId(id);
@@ -20,12 +22,33 @@ router.get("/", async (req, res) => {
         return res.status(400).json({ message: "Invalid ID format." });
       }
     }
-    if (eventId) query.eventId = eventId;
-    if (email) query.email = email;
-    if (phone) query.phone = phone;
 
+    // If a single eventId is provided, add it to the query
+    if (eventId) {
+      query.eventId = eventId;
+    }
+
+    // If email is provided, add it to the query
+    if (email) {
+      query.email = email;
+    }
+
+    // If phone is provided, add it to the query
+    if (phone) {
+      query.phone = phone;
+    }
+
+    // If multiple event IDs are provided as an array (eventIds[]), handle it
+    if (eventIds) {
+      // Ensure eventIds is always treated as an array
+      const eventIdArray = Array.isArray(eventIds) ? eventIds : [eventIds];
+      query.eventId = { $in: eventIdArray }; // Match any eventId in the array
+    }
+
+    // Query the database with the built query object
     const results = await EventCollection.find(query).toArray();
 
+    // If only one result found, return the object directly, else return array
     res.json(results.length === 1 ? results[0] : results);
   } catch (error) {
     console.error("GET /EventApplications error:", error);

@@ -73,6 +73,65 @@ router.get("/EventsCount", async (req, res) => {
   }
 });
 
+router.get("/DailyEventsPosted", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    const matchStage = postedBy ? { postedBy } : {};
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          publishedAtDate: {
+            $convert: {
+              input: "$publishedAt",
+              to: "date",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      { $match: { publishedAtDate: { $ne: null } } },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$publishedAtDate" },
+          },
+          DocumentCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          postedDate: "$_id",
+          DocumentCount: 1,
+        },
+      },
+    ];
+
+    const results = await EventsCollection.aggregate(pipeline).toArray();
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: postedBy
+          ? "No events found for the given postedBy."
+          : "No events found.",
+      });
+    }
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error fetching daily event posts:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching daily event posts.",
+      error: error.message,
+    });
+  }
+});
+
 // Apply for an Upcoming Event
 router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;

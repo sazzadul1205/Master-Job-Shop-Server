@@ -70,6 +70,67 @@ router.get("/InternshipCount", async (req, res) => {
   }
 });
 
+// GET: Daily Internship post counts by postedBy email or all if none provided
+router.get("/DailyInternshipPosted", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    const matchStage = postedBy ? { "postedBy.email": postedBy } : {};
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          postedAtDate: {
+            $convert: {
+              input: "$postedAt",
+              to: "date",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      {
+        $match: {
+          postedAtDate: { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$postedAtDate" } },
+          DocumentCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          postedDate: "$_id",
+          DocumentCount: 1,
+        },
+      },
+    ];
+
+    const results = await InternshipCollection.aggregate(pipeline).toArray();
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: postedBy
+          ? "No internships found for the given postedBy."
+          : "No internships found.",
+      });
+    }
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error fetching daily internship posts:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching daily internship posts.",
+    });
+  }
+});
+
 // Post a new Internship
 router.post("/", async (req, res) => {
   try {

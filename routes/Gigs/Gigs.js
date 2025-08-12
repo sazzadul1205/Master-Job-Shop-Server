@@ -75,6 +75,61 @@ router.get("/GigsCount", async (req, res) => {
   }
 });
 
+// GET: Daily gig post counts by postedBy email or all if none provided
+router.get("/DailyGigPosted", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    const matchStage = postedBy ? { "postedBy.email": postedBy } : {};
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          postedAtDate: {
+            $convert: {
+              input: "$postedAt",
+              to: "date",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      { $match: { postedAtDate: { $ne: null } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$postedAtDate" } },
+          DocumentCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          postedDate: "$_id",
+          DocumentCount: 1,
+        },
+      },
+    ];
+
+    const results = await GigsCollection.aggregate(pipeline).toArray();
+
+    if (results.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No gigs found for the given criteria." });
+    }
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error fetching daily gig posts:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching daily gig posts.",
+    });
+  }
+});
+
 // Apply for a Posted Gig
 router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;

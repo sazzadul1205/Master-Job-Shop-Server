@@ -77,6 +77,67 @@ router.get("/JobsCount", async (req, res) => {
   }
 });
 
+// GET: Daily job post counts by postedBy
+router.get("/DailyJobPosted", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    const matchStage = postedBy ? { postedBy } : {};
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          postedAtDate: {
+            $convert: {
+              input: "$postedAt",
+              to: "date",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      {
+        $match: {
+          postedAtDate: { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$postedAtDate" } },
+          DocumentCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          postedDate: "$_id",
+          DocumentCount: 1,
+        },
+      },
+    ];
+
+    const results = await JobsCollection.aggregate(pipeline).toArray();
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: postedBy
+          ? "No jobs found for the given postedBy."
+          : "No jobs found.",
+      });
+    }
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error fetching daily job posts:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching daily job posts.",
+    });
+  }
+});
+
 // Apply for a Posted Job (update PeopleApplied array)
 router.post("/Apply/:id", async (req, res) => {
   const { id } = req.params;

@@ -130,6 +130,41 @@ router.get("/DailyGigPosted", async (req, res) => {
   }
 });
 
+// GET: Fetch Gig IDs by postedBy email
+router.get("/Ids", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    if (!postedBy) {
+      return res
+        .status(400)
+        .json({ message: "postedBy query parameter is required." });
+    }
+
+    // Find gigs where postedBy.email matches the query param
+    const gigs = await GigsCollection.find(
+      { "postedBy.email": postedBy },
+      { projection: { _id: 1 } }
+    ).toArray();
+
+    if (!gigs || gigs.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No gigs found for the given postedBy." });
+    }
+
+    // Extract _id strings
+    const ids = gigs.map((gig) => gig._id.toString());
+
+    return res.status(200).json(ids);
+  } catch (error) {
+    console.error("Error fetching gig IDs by postedBy:", error);
+    return res
+      .status(500)
+      .json({ message: "An error occurred while fetching gig IDs." });
+  }
+});
+
 // Apply for a Posted Gig
 router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;

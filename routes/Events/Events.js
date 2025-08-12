@@ -73,6 +73,7 @@ router.get("/EventsCount", async (req, res) => {
   }
 });
 
+// GET: Daily Event post counts by postedBy email or all if none provided
 router.get("/DailyEventsPosted", async (req, res) => {
   try {
     const { postedBy } = req.query;
@@ -129,6 +130,39 @@ router.get("/DailyEventsPosted", async (req, res) => {
       message: "An error occurred while fetching daily event posts.",
       error: error.message,
     });
+  }
+});
+
+// GET: Fetch only Event IDs by postedBy email
+router.get("/Ids", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    if (!postedBy) {
+      return res
+        .status(400)
+        .json({ message: "postedBy query parameter is required." });
+    }
+
+    // Find events where postedBy matches the email, return only _id
+    const events = await EventsCollection.find(
+      { postedBy: postedBy },
+      { projection: { _id: 1 } }
+    ).toArray();
+
+    if (!events.length) {
+      return res
+        .status(404)
+        .json({ message: "No events found for the given postedBy." });
+    }
+
+    // Map to string IDs
+    const ids = events.map((event) => event._id.toString());
+
+    res.status(200).json(ids);
+  } catch (error) {
+    console.error("Error fetching event IDs:", error);
+    res.status(500).json({ message: "Error fetching event IDs" });
   }
 });
 

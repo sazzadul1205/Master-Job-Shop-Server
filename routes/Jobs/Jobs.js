@@ -138,6 +138,41 @@ router.get("/DailyJobPosted", async (req, res) => {
   }
 });
 
+// GET: Fetch Job IDs by postedBy email
+router.get("/Ids", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    if (!postedBy) {
+      return res
+        .status(400)
+        .json({ message: "postedBy query parameter is required." });
+    }
+
+    // Find all jobs posted by the given postedBy email
+    const jobs = await JobsCollection.find(
+      { postedBy },
+      { projection: { _id: 1 } }
+    ).toArray();
+
+    if (!jobs || jobs.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No jobs found for the given postedBy." });
+    }
+
+    // Extract just the _id values (convert ObjectId to string)
+    const ids = jobs.map((job) => job._id.toString());
+
+    return res.status(200).json(ids);
+  } catch (error) {
+    console.error("Error fetching job IDs by postedBy:", error);
+    return res
+      .status(500)
+      .json({ message: "An error occurred while fetching job IDs." });
+  }
+});
+
 // Apply for a Posted Job (update PeopleApplied array)
 router.post("/Apply/:id", async (req, res) => {
   const { id } = req.params;

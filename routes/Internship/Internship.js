@@ -131,6 +131,41 @@ router.get("/DailyInternshipPosted", async (req, res) => {
   }
 });
 
+// GET: Fetch Internship IDs by postedBy email
+router.get("/Ids", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    if (!postedBy) {
+      return res
+        .status(400)
+        .json({ message: "postedBy query parameter is required." });
+    }
+
+    // Find internships where postedBy.email matches the query param
+    const internships = await InternshipCollection.find(
+      { "postedBy.email": postedBy },
+      { projection: { _id: 1 } }
+    ).toArray();
+
+    if (!internships || internships.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No internships found for the given postedBy." });
+    }
+
+    // Extract _id strings
+    const ids = internships.map((internship) => internship._id.toString());
+
+    return res.status(200).json(ids);
+  } catch (error) {
+    console.error("Error fetching internship IDs by postedBy:", error);
+    return res
+      .status(500)
+      .json({ message: "An error occurred while fetching internship IDs." });
+  }
+});
+
 // Post a new Internship
 router.post("/", async (req, res) => {
   try {

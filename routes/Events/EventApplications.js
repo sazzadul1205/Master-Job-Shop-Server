@@ -80,6 +80,7 @@ router.get("/Exists", async (req, res) => {
   }
 });
 
+// GET: Fetch daily application count by multiple EventApplicationIds
 router.get("/DailyStatus", async (req, res) => {
   try {
     const { eventIds } = req.query;

@@ -70,6 +70,7 @@ router.get("/Exists", async (req, res) => {
   }
 });
 
+// GET: Fetch daily application count by multiple GigBidIds
 router.get("/DailyStatus", async (req, res) => {
   try {
     const { gigIds } = req.query;

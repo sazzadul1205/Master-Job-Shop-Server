@@ -60,6 +60,7 @@ router.get("/Exists", async (req, res) => {
   }
 });
 
+// GET: Fetch daily application count by multiple InternshipApplicationIds
 router.get("/DailyStatus", async (req, res) => {
   try {
     const { internshipIds } = req.query;

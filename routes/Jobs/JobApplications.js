@@ -3,7 +3,7 @@ const router = express.Router();
 const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
-const JobCollection = client
+const JobApplicationsCollection = client
   .db("Master-Job-Shop")
   .collection("Job-Applications");
 
@@ -46,7 +46,7 @@ router.get("/", async (req, res) => {
     }
 
     // Query the database with the built query object
-    const results = await JobCollection.find(query).toArray();
+    const results = await JobApplicationsCollection.find(query).toArray();
 
     // If only one result found, return the object directly, else return array
     res.json(results.length === 1 ? results[0] : results);
@@ -65,7 +65,10 @@ router.get("/Exists", async (req, res) => {
       return res.status(400).json({ message: "Missing email or jobId." });
     }
 
-    const applicationExists = await JobCollection.findOne({ email, jobId });
+    const applicationExists = await JobApplicationsCollection.findOne({
+      email,
+      jobId,
+    });
 
     res.json({ exists: !!applicationExists });
   } catch (error) {
@@ -129,12 +132,55 @@ router.get("/DailyStatus", async (req, res) => {
       { $sort: { Date: 1 } },
     ];
 
-    const dailyCounts = await JobCollection.aggregate(pipeline).toArray();
+    const dailyCounts = await JobApplicationsCollection.aggregate(
+      pipeline
+    ).toArray();
 
     res.status(200).json(dailyCounts);
   } catch (error) {
     console.error("Error fetching daily job application counts:", error);
     res.status(500).json({ message: "Server error fetching daily status." });
+  }
+});
+
+// GET: Fetch latest 5 applications for given job IDs
+router.get("/LatestApplications", async (req, res) => {
+  try {
+    let { jobIds } = req.query;
+
+    if (!jobIds) {
+      return res
+        .status(400)
+        .json({ message: "jobIds query parameter is required." });
+    }
+
+    // Convert to array and trim spaces
+    if (typeof jobIds === "string") {
+      jobIds = jobIds.split(",").map((id) => id.trim());
+    }
+
+    if (!Array.isArray(jobIds) || jobIds.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "jobIds must be a non-empty array." });
+    }
+
+    const today = new Date();
+
+    // Query DB (keep jobId as string)
+    const results = await JobApplicationsCollection.find({
+      jobId: { $in: jobIds }, // string match
+    })
+      .sort({ appliedAt: -1 }) // latest applications first
+      .limit(5)
+      .toArray();
+
+    // console.log(`Fetched ${results.length} latest applications.`);
+
+    res.json(results);
+  } catch (error) {
+    console.error("GET /applications/latest error:", error);
+    res.status(500).json({ message: "Server error fetching applications." });
   }
 });
 
@@ -147,7 +193,7 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    const result = await JobCollection.insertOne(application);
+    const result = await JobApplicationsCollection.insertOne(application);
     res.status(201).json({ insertedId: result.insertedId });
   } catch (error) {
     console.error("POST /JobApplications error:", error);
@@ -174,7 +220,7 @@ router.put("/Status/:id", async (req, res) => {
     }
 
     // Update status field (set or create)
-    const result = await JobCollection.updateOne(
+    const result = await JobApplicationsCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: { status: status.trim() } }
     );
@@ -221,7 +267,7 @@ router.put("/Accepted/:id", async (req, res) => {
       },
     };
 
-    const result = await JobCollection.updateOne(filter, updateDoc);
+    const result = await JobApplicationsCollection.updateOne(filter, updateDoc);
 
     if (result.modifiedCount === 0) {
       return res
@@ -249,7 +295,9 @@ router.delete("/:id", async (req, res) => {
       return res.status(400).json({ message: "Invalid application ID." });
     }
 
-    const result = await JobCollection.deleteOne({ _id: new ObjectId(id) });
+    const result = await JobApplicationsCollection.deleteOne({
+      _id: new ObjectId(id),
+    });
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: "Application not found." });

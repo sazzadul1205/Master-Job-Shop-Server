@@ -3,7 +3,7 @@ const router = express.Router();
 const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
-const GigCollection = client.db("Master-Job-Shop").collection("Gig-Bids");
+const GigBidsCollection = client.db("Master-Job-Shop").collection("Gig-Bids");
 
 // GET: Fetch all or filtered bids
 router.get("/", async (req, res) => {
@@ -41,7 +41,7 @@ router.get("/", async (req, res) => {
       query.gigId = { $in: gigIdArray };
     }
 
-    const results = await GigCollection.find(query).toArray();
+    const results = await GigBidsCollection.find(query).toArray();
 
     res.json(results.length === 1 ? results[0] : results);
   } catch (error) {
@@ -59,7 +59,7 @@ router.get("/Exists", async (req, res) => {
       return res.status(400).json({ message: "Missing email or gigId." });
     }
 
-    const applicationExists = await GigCollection.findOne({ email, gigId });
+    const applicationExists = await GigBidsCollection.findOne({ email, gigId });
 
     res.json({ exists: !!applicationExists });
   } catch (error) {
@@ -67,6 +67,67 @@ router.get("/Exists", async (req, res) => {
     res
       .status(500)
       .json({ message: "Server error checking application status." });
+  }
+});
+
+router.get("/DailyStatus", async (req, res) => {
+  try {
+    const { gigIds } = req.query;
+
+    let matchStage = {};
+    if (gigIds) {
+      const idsArray = Array.isArray(gigIds)
+        ? gigIds
+        : gigIds.split(",").map((id) => id.trim());
+
+      matchStage.gigId = { $in: idsArray };
+    }
+
+    const pipeline = [
+      { $match: matchStage }, // Filters only if gigIds were provided
+      {
+        $addFields: {
+          submittedAtDate: {
+            $cond: [
+              { $ne: ["$submittedAt", null] },
+              { $toDate: "$submittedAt" },
+              null,
+            ],
+          },
+        },
+      },
+      {
+        $match: { submittedAtDate: { $ne: null } },
+      },
+      {
+        $project: {
+          date: {
+            $dateToString: { format: "%Y-%m-%d", date: "$submittedAtDate" },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$date",
+          bids: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          Date: "$_id",
+          bids: 1,
+        },
+      },
+      { $sort: { Date: 1 } },
+    ];
+
+    const dailyCounts = await GigBidsCollection.aggregate(pipeline).toArray();
+
+    res.status(200).json(dailyCounts);
+  } catch (error) {
+    console.error("Error fetching daily gig bid counts:", error);
+    res.status(500).json({ message: "Server error fetching daily status." });
   }
 });
 
@@ -79,7 +140,7 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    const result = await GigCollection.insertOne(bid);
+    const result = await GigBidsCollection.insertOne(bid);
     res.status(201).json({ insertedId: result.insertedId });
   } catch (error) {
     console.error("POST /GigBids error:", error);
@@ -103,7 +164,7 @@ router.put("/Status/:id", async (req, res) => {
       });
     }
 
-    const result = await GigCollection.updateOne(
+    const result = await GigBidsCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: { status: status.trim() } }
     );
@@ -150,7 +211,7 @@ router.put("/Accepted/:id", async (req, res) => {
       },
     };
 
-    const result = await GigCollection.updateOne(filter, updateDoc);
+    const result = await GigBidsCollection.updateOne(filter, updateDoc);
 
     if (result.modifiedCount === 0) {
       return res
@@ -177,7 +238,7 @@ router.delete("/:id", async (req, res) => {
       return res.status(400).json({ message: "Invalid ID format." });
     }
 
-    const result = await GigCollection.deleteOne({ _id: new ObjectId(id) });
+    const result = await GigBidsCollection.deleteOne({ _id: new ObjectId(id) });
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: "Bid not found." });

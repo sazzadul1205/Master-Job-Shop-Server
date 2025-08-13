@@ -76,6 +76,68 @@ router.get("/Exists", async (req, res) => {
   }
 });
 
+// GET: Fetch daily application count by multiple jobIds
+router.get("/DailyStatus", async (req, res) => {
+  try {
+    const { jobIds } = req.query;
+
+    let matchStage = {};
+    if (jobIds) {
+      const idsArray = Array.isArray(jobIds)
+        ? jobIds
+        : jobIds.split(",").map((id) => id.trim());
+
+      matchStage.jobId = { $in: idsArray };
+    }
+
+    const pipeline = [
+      { $match: matchStage }, // Filters only if jobIds were provided
+      {
+        $addFields: {
+          appliedAtDate: {
+            $cond: [
+              { $ne: ["$appliedAt", null] },
+              { $toDate: "$appliedAt" },
+              null,
+            ],
+          },
+        },
+      },
+      {
+        $match: { appliedAtDate: { $ne: null } },
+      },
+      {
+        $project: {
+          date: {
+            $dateToString: { format: "%Y-%m-%d", date: "$appliedAtDate" },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$date",
+          applied: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          Date: "$_id",
+          applied: 1,
+        },
+      },
+      { $sort: { Date: 1 } },
+    ];
+
+    const dailyCounts = await JobCollection.aggregate(pipeline).toArray();
+
+    res.status(200).json(dailyCounts);
+  } catch (error) {
+    console.error("Error fetching daily job application counts:", error);
+    res.status(500).json({ message: "Server error fetching daily status." });
+  }
+});
+
 // POST: Submit new application
 router.post("/", async (req, res) => {
   try {

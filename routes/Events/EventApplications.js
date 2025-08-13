@@ -4,7 +4,7 @@ const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 const crypto = require("crypto");
 
-const EventCollection = client
+const EventApplicationsCollection = client
   .db("Master-Job-Shop")
   .collection("Event-Applications");
 
@@ -47,7 +47,7 @@ router.get("/", async (req, res) => {
     }
 
     // Query the database with the built query object
-    const results = await EventCollection.find(query).toArray();
+    const results = await EventApplicationsCollection.find(query).toArray();
 
     // If only one result found, return the object directly, else return array
     res.json(results.length === 1 ? results[0] : results);
@@ -66,7 +66,7 @@ router.get("/Exists", async (req, res) => {
       return res.status(400).json({ message: "Missing email or eventId." });
     }
 
-    const applicationExists = await EventCollection.findOne({
+    const applicationExists = await EventApplicationsCollection.findOne({
       email,
       eventId,
     });
@@ -80,6 +80,69 @@ router.get("/Exists", async (req, res) => {
   }
 });
 
+router.get("/DailyStatus", async (req, res) => {
+  try {
+    const { eventIds } = req.query;
+
+    let matchStage = {};
+    if (eventIds) {
+      const idsArray = Array.isArray(eventIds)
+        ? eventIds
+        : eventIds.split(",").map((id) => id.trim());
+
+      matchStage.eventId = { $in: idsArray };
+    }
+
+    const pipeline = [
+      { $match: matchStage }, // Filters only if eventIds were provided
+      {
+        $addFields: {
+          appliedAtDate: {
+            $cond: [
+              { $ne: ["$appliedAt", null] },
+              { $toDate: "$appliedAt" },
+              null,
+            ],
+          },
+        },
+      },
+      {
+        $match: { appliedAtDate: { $ne: null } },
+      },
+      {
+        $project: {
+          date: {
+            $dateToString: { format: "%Y-%m-%d", date: "$appliedAtDate" },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$date",
+          applications: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          Date: "$_id",
+          applications: 1,
+        },
+      },
+      { $sort: { Date: 1 } },
+    ];
+
+    const dailyCounts = await EventApplicationsCollection.aggregate(
+      pipeline
+    ).toArray();
+
+    res.status(200).json(dailyCounts);
+  } catch (error) {
+    console.error("Error fetching daily event application counts:", error);
+    res.status(500).json({ message: "Server error fetching daily status." });
+  }
+});
+
 // POST: Submit new application
 router.post("/", async (req, res) => {
   try {
@@ -89,7 +152,7 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    const result = await EventCollection.insertOne(application);
+    const result = await EventApplicationsCollection.insertOne(application);
     res.status(201).json({ insertedId: result.insertedId });
   } catch (error) {
     console.error("POST /EventApplications error:", error);
@@ -105,7 +168,7 @@ router.patch("/Status/Accept/:id", async (req, res) => {
     // Generate 16 bytes (128 bits) random hex string => 32 hex chars
     const uniqueCode = crypto.randomBytes(16).toString("hex");
 
-    const updateResult = await EventCollection.updateOne(
+    const updateResult = await EventApplicationsCollection.updateOne(
       { _id: objectId },
       {
         $set: {
@@ -136,7 +199,7 @@ router.patch("/Status/Reject/:id", async (req, res) => {
   try {
     const objectId = new ObjectId(id);
 
-    const updateResult = await EventCollection.updateOne(
+    const updateResult = await EventApplicationsCollection.updateOne(
       { _id: objectId },
       {
         $set: { status: "Rejected", rejectedAt: new Date() },
@@ -163,7 +226,9 @@ router.delete("/:id", async (req, res) => {
       return res.status(400).json({ message: "Invalid ID format." });
     }
 
-    const result = await EventCollection.deleteOne({ _id: new ObjectId(id) });
+    const result = await EventApplicationsCollection.deleteOne({
+      _id: new ObjectId(id),
+    });
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: "Application not found." });

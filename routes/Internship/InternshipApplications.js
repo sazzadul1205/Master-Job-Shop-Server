@@ -3,7 +3,7 @@ const router = express.Router();
 const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
-const InternshipCollection = client
+const InternshipApplicationsCollection = client
   .db("Master-Job-Shop")
   .collection("Internship-Applications");
 
@@ -24,7 +24,9 @@ router.get("/", async (req, res) => {
     if (email) query.email = email;
     if (phone) query.phone = phone;
 
-    const results = await InternshipCollection.find(query).toArray();
+    const results = await InternshipApplicationsCollection.find(
+      query
+    ).toArray();
 
     res.json(results.length === 1 ? results[0] : results);
   } catch (error) {
@@ -44,7 +46,7 @@ router.get("/Exists", async (req, res) => {
         .json({ message: "Missing email or internshipId." });
     }
 
-    const applicationExists = await InternshipCollection.findOne({
+    const applicationExists = await InternshipApplicationsCollection.findOne({
       email,
       internshipId,
     });
@@ -58,6 +60,69 @@ router.get("/Exists", async (req, res) => {
   }
 });
 
+router.get("/DailyStatus", async (req, res) => {
+  try {
+    const { internshipIds } = req.query;
+
+    let matchStage = {};
+    if (internshipIds) {
+      const idsArray = Array.isArray(internshipIds)
+        ? internshipIds
+        : internshipIds.split(",").map((id) => id.trim());
+
+      matchStage.internshipId = { $in: idsArray };
+    }
+
+    const pipeline = [
+      { $match: matchStage }, // Filters only if internshipIds were provided
+      {
+        $addFields: {
+          appliedAtDate: {
+            $cond: [
+              { $ne: ["$appliedAt", null] },
+              { $toDate: "$appliedAt" },
+              null,
+            ],
+          },
+        },
+      },
+      {
+        $match: { appliedAtDate: { $ne: null } },
+      },
+      {
+        $project: {
+          date: {
+            $dateToString: { format: "%Y-%m-%d", date: "$appliedAtDate" },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$date",
+          applications: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          Date: "$_id",
+          applications: 1,
+        },
+      },
+      { $sort: { Date: 1 } },
+    ];
+
+    const dailyCounts = await InternshipApplicationsCollection.aggregate(
+      pipeline
+    ).toArray();
+
+    res.status(200).json(dailyCounts);
+  } catch (error) {
+    console.error("Error fetching daily internship application counts:", error);
+    res.status(500).json({ message: "Server error fetching daily status." });
+  }
+});
+
 // POST: Submit new application
 router.post("/", async (req, res) => {
   try {
@@ -67,7 +132,9 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    const result = await InternshipCollection.insertOne(application);
+    const result = await InternshipApplicationsCollection.insertOne(
+      application
+    );
     res.status(201).json({ insertedId: result.insertedId });
   } catch (error) {
     console.error("POST /InternshipApplications error:", error);
@@ -94,7 +161,7 @@ router.put("/Status/:id", async (req, res) => {
     }
 
     // Update status field (set or create)
-    const result = await InternshipCollection.updateOne(
+    const result = await InternshipApplicationsCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: { status: status.trim() } }
     );
@@ -141,7 +208,10 @@ router.put("/Accepted/:id", async (req, res) => {
       },
     };
 
-    const result = await InternshipCollection.updateOne(filter, updateDoc);
+    const result = await InternshipApplicationsCollection.updateOne(
+      filter,
+      updateDoc
+    );
 
     if (result.modifiedCount === 0) {
       return res
@@ -175,7 +245,9 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    const result = await InternshipCollection.deleteOne({ _id: objectId });
+    const result = await InternshipApplicationsCollection.deleteOne({
+      _id: objectId,
+    });
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: "Application not found." });

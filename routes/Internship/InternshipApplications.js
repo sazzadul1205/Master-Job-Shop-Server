@@ -154,9 +154,9 @@ router.get("/LatestApplications", async (req, res) => {
       .limit(limit)
       .toArray();
 
-    console.log(
-      `LatestApplications -> Internship IDs: ${internshipIds.length}, Applications fetched: ${results.length}, Limit: ${limit}`
-    );
+    // console.log(
+    //   `LatestApplications -> Internship IDs: ${internshipIds.length}, Applications fetched: ${results.length}, Limit: ${limit}`
+    // );
 
     res.json(results);
   } catch (error) {

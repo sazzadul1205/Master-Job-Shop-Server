@@ -166,6 +166,56 @@ router.get("/Ids", async (req, res) => {
   }
 });
 
+// GET: Fetch Event Summaries by ID(s)
+router.get("/Summary", async (req, res) => {
+  try {
+    const { id, eventIds } = req.query;
+
+    // Handle single event by id
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid event ID." });
+      }
+
+      const event = await EventsCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { _id: 1, title: 1 } }
+      );
+
+      if (!event) {
+        return res.status(404).json({ message: "Event not found." });
+      }
+      return res.status(200).json(event);
+    }
+
+    // Handle multiple eventIds (CSV string)
+    if (eventIds) {
+      let idsArray;
+      try {
+        idsArray = eventIds.split(",").map((id) => new ObjectId(id.trim()));
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid eventIds format." });
+      }
+
+      const events = await EventsCollection.find(
+        { _id: { $in: idsArray } },
+        { projection: { _id: 1, title: 1 } }
+      ).toArray();
+
+      return res.status(200).json(events);
+    }
+
+    res
+      .status(400)
+      .json({ message: "Please provide either 'id' or 'eventIds'." });
+  } catch (error) {
+    console.error("Error fetching event summaries:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while fetching event summaries." });
+  }
+});
+
 // Apply for an Upcoming Event
 router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;

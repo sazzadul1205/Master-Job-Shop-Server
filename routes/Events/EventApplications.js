@@ -174,9 +174,9 @@ router.get("/LatestApplications", async (req, res) => {
       .limit(limit)
       .toArray();
 
-    console.log(
-      `LatestApplications -> Event IDs: ${eventIds.length}, Applications fetched: ${results.length}, Limit: ${limit}`
-    );
+    // console.log(
+    //   `LatestApplications -> Event IDs: ${eventIds.length}, Applications fetched: ${results.length}, Limit: ${limit}`
+    // );
 
     res.json(results);
   } catch (error) {

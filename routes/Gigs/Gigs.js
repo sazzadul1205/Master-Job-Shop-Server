@@ -165,7 +165,7 @@ router.get("/Ids", async (req, res) => {
   }
 });
 
-// GET: Fetch Job Summaries by ID(s)
+// GET: Fetch Gig Summaries by ID(s)
 router.get("/Summary", async (req, res) => {
   try {
     const { id, gigIds } = req.query;
@@ -184,7 +184,7 @@ router.get("/Summary", async (req, res) => {
       if (!gig) {
         return res.status(404).json({ message: "Gig not found." });
       }
-      return res.status(200).json(job);
+      return res.status(200).json(gig);
     }
 
     // Handle multiple gigIds (CSV string)

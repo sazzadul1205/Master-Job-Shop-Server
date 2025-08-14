@@ -180,9 +180,9 @@ router.get("/LatestApplications", async (req, res) => {
       .toArray();
 
     // Summary log
-    console.log(
-      `LatestApplications -> Job IDs: ${jobIds.length}, Applications fetched: ${results.length}, Limit: ${limit}`
-    );
+    // console.log(
+    //   `LatestApplications -> Job IDs: ${jobIds.length}, Applications fetched: ${results.length}, Limit: ${limit}`
+    // );
 
     res.json(results);
   } catch (error) {

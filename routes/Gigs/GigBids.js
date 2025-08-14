@@ -162,9 +162,9 @@ router.get("/LatestBids", async (req, res) => {
       .limit(limit)
       .toArray();
 
-    console.log(
-      `LatestBids -> Gig IDs: ${gigIds.length}, Bids fetched: ${results.length}, Limit: ${limit}`
-    );
+    // console.log(
+    //   `LatestBids -> Gig IDs: ${gigIds.length}, Bids fetched: ${results.length}, Limit: ${limit}`
+    // );
 
     res.json(results);
   } catch (error) {

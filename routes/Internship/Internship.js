@@ -166,6 +166,60 @@ router.get("/Ids", async (req, res) => {
   }
 });
 
+// GET: Fetch Internship Summaries by ID(s)
+router.get("/Summary", async (req, res) => {
+  try {
+    const { id, internshipIds } = req.query;
+
+    // Handle single internship by id
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid Internship ID." });
+      }
+
+      const internship = await InternshipCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { _id: 1, title: 1 } }
+      );
+
+      if (!internship) {
+        return res.status(404).json({ message: "Internship not found." });
+      }
+      return res.status(200).json(internship);
+    }
+
+    // Handle multiple internshipIds (CSV string)
+    if (internshipIds) {
+      let idsArray;
+      try {
+        idsArray = internshipIds
+          .split(",")
+          .map((id) => new ObjectId(id.trim()));
+      } catch (err) {
+        return res
+          .status(400)
+          .json({ message: "Invalid internshipIds format." });
+      }
+
+      const internship = await InternshipCollection.find(
+        { _id: { $in: idsArray } },
+        { projection: { _id: 1, title: 1 } }
+      ).toArray();
+
+      return res.status(200).json(internship);
+    }
+
+    res
+      .status(400)
+      .json({ message: "Please provide either 'id' or 'internshipIds'." });
+  } catch (error) {
+    console.error("Error fetching internship summaries:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching internship summaries.",
+    });
+  }
+});
+
 // Post a new Internship
 router.post("/", async (req, res) => {
   try {

@@ -173,6 +173,56 @@ router.get("/Ids", async (req, res) => {
   }
 });
 
+// GET: Fetch Job Summaries by ID(s)
+router.get("/Summary", async (req, res) => {
+  try {
+    const { id, jobIds } = req.query;
+
+    // Handle single job by id
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid job ID." });
+      }
+
+      const job = await JobsCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { _id: 1, title: 1 } }
+      );
+
+      if (!job) {
+        return res.status(404).json({ message: "Job not found." });
+      }
+      return res.status(200).json(job);
+    }
+
+    // Handle multiple jobIds (CSV string)
+    if (jobIds) {
+      let idsArray;
+      try {
+        idsArray = jobIds.split(",").map((id) => new ObjectId(id.trim()));
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid jobIds format." });
+      }
+
+      const jobs = await JobsCollection.find(
+        { _id: { $in: idsArray } },
+        { projection: { _id: 1, title: 1 } }
+      ).toArray();
+
+      return res.status(200).json(jobs);
+    }
+
+    res
+      .status(400)
+      .json({ message: "Please provide either 'id' or 'jobIds'." });
+  } catch (error) {
+    console.error("Error fetching job summaries:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while fetching job summaries." });
+  }
+});
+
 // Apply for a Posted Job (update PeopleApplied array)
 router.post("/Apply/:id", async (req, res) => {
   const { id } = req.params;

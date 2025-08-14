@@ -165,6 +165,56 @@ router.get("/Ids", async (req, res) => {
   }
 });
 
+// GET: Fetch Job Summaries by ID(s)
+router.get("/Summary", async (req, res) => {
+  try {
+    const { id, gigIds } = req.query;
+
+    // Handle single gig by id
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid gig ID." });
+      }
+
+      const gig = await GigsCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { _id: 1, title: 1 } }
+      );
+
+      if (!gig) {
+        return res.status(404).json({ message: "Gig not found." });
+      }
+      return res.status(200).json(job);
+    }
+
+    // Handle multiple gigIds (CSV string)
+    if (gigIds) {
+      let idsArray;
+      try {
+        idsArray = gigIds.split(",").map((id) => new ObjectId(id.trim()));
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid gigIds format." });
+      }
+
+      const gigs = await GigsCollection.find(
+        { _id: { $in: idsArray } },
+        { projection: { _id: 1, title: 1 } }
+      ).toArray();
+
+      return res.status(200).json(gigs);
+    }
+
+    res
+      .status(400)
+      .json({ message: "Please provide either 'id' or 'gigIds'." });
+  } catch (error) {
+    console.error("Error fetching gig summaries:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while fetching gig summaries." });
+  }
+});
+
 // Apply for a Posted Gig
 router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;

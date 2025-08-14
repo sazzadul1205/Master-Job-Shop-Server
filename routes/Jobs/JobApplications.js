@@ -165,8 +165,6 @@ router.get("/LatestApplications", async (req, res) => {
         .json({ message: "jobIds must be a non-empty array." });
     }
 
-    const today = new Date();
-
     // Query DB (keep jobId as string)
     const results = await JobApplicationsCollection.find({
       jobId: { $in: jobIds }, // string match

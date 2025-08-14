@@ -132,6 +132,41 @@ router.get("/DailyStatus", async (req, res) => {
   }
 });
 
+// GET: Fetch top 5 latest bids for given gig IDs
+router.get("/LatestBids", async (req, res) => {
+  try {
+    let { gigIds } = req.query;
+
+    if (!gigIds) {
+      return res
+        .status(400)
+        .json({ message: "gigIds query parameter is required." });
+    }
+
+    if (typeof gigIds === "string") {
+      gigIds = gigIds.split(",").map((id) => id.trim());
+    }
+
+    // Query: match any gigId in the provided list
+    const query = { gigId: { $in: gigIds } };
+
+    // Fetch top 5 bids sorted by submittedAt descending
+    const results = await GigBidsCollection.find(query)
+      .sort({ submittedAt: -1 })
+      .limit(5)
+      .toArray();
+
+    console.log(
+      `LatestBids -> Gig IDs: ${gigIds.length}, Bids fetched: ${results.length}`
+    );
+
+    res.json(results);
+  } catch (error) {
+    console.error("GET /LatestBids error:", error);
+    res.status(500).json({ message: "Server error fetching latest bids." });
+  }
+});
+
 // POST: Submit new bid
 router.post("/", async (req, res) => {
   try {

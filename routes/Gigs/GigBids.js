@@ -132,10 +132,10 @@ router.get("/DailyStatus", async (req, res) => {
   }
 });
 
-// GET: Fetch top 5 latest bids for given gig IDs
+// GET: Fetch latest bids for given gig IDs with controllable limit
 router.get("/LatestBids", async (req, res) => {
   try {
-    let { gigIds } = req.query;
+    let { gigIds, limit } = req.query;
 
     if (!gigIds) {
       return res
@@ -147,17 +147,23 @@ router.get("/LatestBids", async (req, res) => {
       gigIds = gigIds.split(",").map((id) => id.trim());
     }
 
+    // Parse limit, default to 5 if not provided or invalid
+    limit = parseInt(limit);
+    if (isNaN(limit) || limit <= 0) {
+      limit = 5;
+    }
+
     // Query: match any gigId in the provided list
     const query = { gigId: { $in: gigIds } };
 
-    // Fetch top 5 bids sorted by submittedAt descending
+    // Fetch bids sorted by submittedAt descending, limited by 'limit'
     const results = await GigBidsCollection.find(query)
       .sort({ submittedAt: -1 })
-      .limit(5)
+      .limit(limit)
       .toArray();
 
     console.log(
-      `LatestBids -> Gig IDs: ${gigIds.length}, Bids fetched: ${results.length}`
+      `LatestBids -> Gig IDs: ${gigIds.length}, Bids fetched: ${results.length}, Limit: ${limit}`
     );
 
     res.json(results);

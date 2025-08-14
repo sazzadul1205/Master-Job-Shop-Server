@@ -124,6 +124,49 @@ router.get("/DailyStatus", async (req, res) => {
   }
 });
 
+// GET: Fetch latest Applications for given gig IDs with controllable limit
+router.get("/LatestApplications", async (req, res) => {
+  try {
+    let { internshipIds, limit } = req.query;
+
+    if (!internshipIds) {
+      return res
+        .status(400)
+        .json({ message: "internshipIds query parameter is required." });
+    }
+
+    if (typeof internshipIds === "string") {
+      internshipIds = internshipIds.split(",").map((id) => id.trim());
+    }
+
+    // Parse limit, default to 5 if not provided or invalid
+    limit = parseInt(limit);
+    if (isNaN(limit) || limit <= 0) {
+      limit = 5;
+    }
+
+    // Query: match any internshipId in the provided list
+    const query = { internshipId: { $in: internshipIds } };
+
+    // Fetch Applications sorted by appliedAt descending, limited by 'limit'
+    const results = await InternshipApplicationsCollection.find(query)
+      .sort({ appliedAt: -1 })
+      .limit(limit)
+      .toArray();
+
+    console.log(
+      `LatestApplications -> Internship IDs: ${internshipIds.length}, Applications fetched: ${results.length}, Limit: ${limit}`
+    );
+
+    res.json(results);
+  } catch (error) {
+    console.error("GET /LatestApplications error:", error);
+    res
+      .status(500)
+      .json({ message: "Server error fetching latest Applications." });
+  }
+});
+
 // POST: Submit new application
 router.post("/", async (req, res) => {
   try {

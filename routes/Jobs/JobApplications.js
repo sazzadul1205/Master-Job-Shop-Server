@@ -143,10 +143,10 @@ router.get("/DailyStatus", async (req, res) => {
   }
 });
 
-// GET: Fetch latest 5 applications for given job IDs
+// GET: Fetch latest applications for given job IDs with controllable limit
 router.get("/LatestApplications", async (req, res) => {
   try {
-    let { jobIds } = req.query;
+    let { jobIds, limit } = req.query;
 
     if (!jobIds) {
       return res
@@ -165,15 +165,24 @@ router.get("/LatestApplications", async (req, res) => {
         .json({ message: "jobIds must be a non-empty array." });
     }
 
+    // Parse limit, default to 5 if not provided or invalid
+    limit = parseInt(limit);
+    if (isNaN(limit) || limit <= 0) {
+      limit = 5;
+    }
+
     // Query DB (keep jobId as string)
     const results = await JobApplicationsCollection.find({
-      jobId: { $in: jobIds }, // string match
+      jobId: { $in: jobIds },
     })
       .sort({ appliedAt: -1 }) // latest applications first
-      .limit(5)
+      .limit(limit)
       .toArray();
 
-    // console.log(`Fetched ${results.length} latest applications.`);
+    // Summary log
+    console.log(
+      `LatestApplications -> Job IDs: ${jobIds.length}, Applications fetched: ${results.length}, Limit: ${limit}`
+    );
 
     res.json(results);
   } catch (error) {

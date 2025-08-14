@@ -144,6 +144,49 @@ router.get("/DailyStatus", async (req, res) => {
   }
 });
 
+// GET: Fetch latest Applications for given event IDs with controllable limit
+router.get("/LatestApplications", async (req, res) => {
+  try {
+    let { eventIds, limit } = req.query;
+
+    if (!eventIds) {
+      return res
+        .status(400)
+        .json({ message: "eventIds query parameter is required." });
+    }
+
+    if (typeof eventIds === "string") {
+      eventIds = eventIds.split(",").map((id) => id.trim());
+    }
+
+    // Parse limit, default to 5 if not provided or invalid
+    limit = parseInt(limit);
+    if (isNaN(limit) || limit <= 0) {
+      limit = 5;
+    }
+
+    // Query: match any eventId in the provided list
+    const query = { eventId: { $in: eventIds } };
+
+    // Fetch Applications sorted by appliedAt descending, limited by 'limit'
+    const results = await EventApplicationsCollection.find(query)
+      .sort({ appliedAt: -1 })
+      .limit(limit)
+      .toArray();
+
+    console.log(
+      `LatestApplications -> Event IDs: ${eventIds.length}, Applications fetched: ${results.length}, Limit: ${limit}`
+    );
+
+    res.json(results);
+  } catch (error) {
+    console.error("GET /LatestApplications error:", error);
+    res
+      .status(500)
+      .json({ message: "Server error fetching latest Applications." });
+  }
+});
+
 // POST: Submit new application
 router.post("/", async (req, res) => {
   try {

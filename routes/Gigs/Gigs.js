@@ -215,6 +215,99 @@ router.get("/Summary", async (req, res) => {
   }
 });
 
+// GET: Fetch gigs by IDs and sort by deadline proximity (expired first)
+router.get("/Deadline", async (req, res) => {
+  try {
+    const { gigIds, limit } = req.query;
+
+    if (!gigIds) {
+      return res.status(400).json({ message: "gigIds query is required." });
+    }
+
+    let idsArray;
+    try {
+      idsArray = gigIds.split(",").map((id) => {
+        if (!ObjectId.isValid(id.trim())) throw new Error();
+        return new ObjectId(id.trim());
+      });
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid gigIds format." });
+    }
+
+    const gigs = await GigsCollection.find({
+      _id: { $in: idsArray },
+    })
+      .project({
+        _id: 1,
+        title: 1,
+        deliveryDeadline: 1,
+      })
+      .toArray();
+
+    if (!gigs.length) {
+      return res.status(404).json({ message: "No gigs found." });
+    }
+
+    const now = new Date();
+
+    // Calculate time left & mark expired
+    const gigsWithDeadline = gigs.map((gig) => {
+      const deadline = gig.deliveryDeadline
+        ? new Date(gig.deliveryDeadline)
+        : null;
+
+      let daysLeft = null;
+      let hoursLeft = null;
+      let expired = false;
+
+      if (deadline) {
+        const diffMs = deadline - now;
+        if (diffMs <= 0) {
+          expired = true;
+          daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24)); // negative days
+        } else {
+          daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          hoursLeft = Math.floor(
+            (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+          );
+        }
+      }
+
+      return {
+        _id: gig._id,
+        title: gig.title,
+        deliveryDeadline: gig.deliveryDeadline,
+        timeLeft: expired
+          ? "Expired"
+          : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} ${hoursLeft} hour${
+              hoursLeft !== 1 ? "s" : ""
+            }`,
+        expired,
+        daysLeft,
+      };
+    });
+
+    // Sort: expired first (oldest expired first), then by soonest deadline
+    gigsWithDeadline.sort((a, b) => {
+      if (a.expired && b.expired) {
+        return a.daysLeft - b.daysLeft; // more negative = expired longer ago
+      }
+      if (a.expired && !b.expired) return -1;
+      if (!a.expired && b.expired) return 1;
+      return a.daysLeft - b.daysLeft; // soonest deadline first
+    });
+
+    // Apply limit (default 4)
+    const resultLimit = parseInt(limit) || 4;
+    const limitedResults = gigsWithDeadline.slice(0, resultLimit);
+
+    res.status(200).json(limitedResults);
+  } catch (error) {
+    console.error("Error fetching gigs by deadline:", error);
+    res.status(500).json({ message: "An error occurred while fetching gigs." });
+  }
+});
+
 // Apply for a Posted Gig
 router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;

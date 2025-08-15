@@ -223,6 +223,104 @@ router.get("/Summary", async (req, res) => {
   }
 });
 
+// GET: Fetch jobs by IDs and sort by deadline proximity (expired first)
+router.get("/Deadline", async (req, res) => {
+  try {
+    const { jobIds, limit } = req.query; // Receive job IDs and optional limit from query
+
+    // If no job IDs provided, return bad request
+    if (!jobIds) {
+      return res.status(400).json({ message: "jobIds query is required." });
+    }
+
+    // Parse limit (default to 4 if not given)
+    const limitNumber = parseInt(limit, 10) || 4;
+
+    let idsArray;
+    try {
+      // Convert comma-separated job IDs into MongoDB ObjectIds
+      idsArray = jobIds.split(",").map((id) => new ObjectId(id.trim()));
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid jobIds format." });
+    }
+
+    // Fetch only the needed fields from DB
+    const jobs = await JobsCollection.find({
+      _id: { $in: idsArray },
+    })
+      .project({
+        _id: 1, // Keep ID
+        title: 1, // Keep title
+        "application.applicationDeadline": 1, // Keep deadline
+      })
+      .toArray();
+
+    // If no matching jobs, return 404
+    if (!jobs.length) {
+      return res.status(404).json({ message: "No jobs found." });
+    }
+
+    const now = new Date(); // Current time
+
+    // Process each job to calculate time left and expired status
+    const jobsWithDeadline = jobs.map((job) => {
+      const deadline = job.application?.applicationDeadline
+        ? new Date(job.application.applicationDeadline)
+        : null;
+
+      let expired = false;
+      let timeLeftText;
+
+      if (deadline) {
+        const diffMs = deadline - now; // Time difference in milliseconds
+        const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24)); // Whole days left
+        const hoursLeft = Math.floor(
+          (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60) // Remaining hours after days
+        );
+
+        if (diffMs <= 0) {
+          // Past deadline
+          expired = true;
+          timeLeftText = "Expired";
+        } else {
+          // Format like "3 days 5 hours"
+          timeLeftText = `${daysLeft} day${
+            daysLeft !== 1 ? "s" : ""
+          } ${hoursLeft} hour${hoursLeft !== 1 ? "s" : ""}`;
+        }
+      } else {
+        timeLeftText = "No deadline"; // Missing deadline
+      }
+
+      return {
+        _id: job._id,
+        title: job.title,
+        applicationDeadline: deadline ? deadline.toISOString() : null,
+        timeLeft: timeLeftText,
+        expired,
+      };
+    });
+
+    // Sort jobs: expired first (earliest expired first), then soonest deadline
+    jobsWithDeadline.sort((a, b) => {
+      if (a.expired && b.expired) {
+        return (
+          new Date(a.applicationDeadline) - new Date(b.applicationDeadline)
+        );
+      }
+      if (a.expired && !b.expired) return -1;
+      if (!a.expired && b.expired) return 1;
+      return new Date(a.applicationDeadline) - new Date(b.applicationDeadline);
+    });
+
+    // Send only the number of jobs requested (default 4)
+    res.status(200).json(jobsWithDeadline.slice(0, limitNumber));
+  } catch (error) {
+    console.error("Error fetching jobs by deadline:", error);
+    res.status(500).json({ message: "An error occurred while fetching jobs." });
+  }
+});
+
 // Apply for a Posted Job (update PeopleApplied array)
 router.post("/Apply/:id", async (req, res) => {
   const { id } = req.params;

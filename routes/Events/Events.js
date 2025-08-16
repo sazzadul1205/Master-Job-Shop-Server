@@ -216,6 +216,102 @@ router.get("/Summary", async (req, res) => {
   }
 });
 
+// GET: Fetch events by IDs and sort by registration deadline proximity (expired first)
+router.get("/Deadline", async (req, res) => {
+  try {
+    const { eventIds, limit } = req.query; // Receive event IDs and optional limit from query
+
+    if (!eventIds) {
+      return res.status(400).json({ message: "eventIds query is required." });
+    }
+
+    // Parse limit (default to 4 if not given)
+    const limitNumber = parseInt(limit, 10) || 4;
+
+    let idsArray;
+    try {
+      idsArray = eventIds.split(",").map((id) => new ObjectId(id.trim()));
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid eventIds format." });
+    }
+
+    // Fetch events
+    const events = await EventsCollection.find({
+      _id: { $in: idsArray },
+    })
+      .project({
+        _id: 1,
+        title: 1,
+        "registration.closeDate": 1, // only keep deadline
+      })
+      .toArray();
+
+    if (!events.length) {
+      return res.status(404).json({ message: "No events found." });
+    }
+
+    const now = new Date();
+
+    // Process each event
+    const processedEvents = events.map((event) => {
+      const deadline = event.registration?.closeDate
+        ? new Date(event.registration.closeDate)
+        : null;
+
+      let expired = false;
+      let timeLeftText;
+
+      if (deadline) {
+        const diffMs = deadline - now;
+        const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hoursLeft = Math.floor(
+          (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+        );
+
+        if (diffMs <= 0) {
+          expired = true;
+          timeLeftText = "Expired";
+        } else {
+          timeLeftText = `${daysLeft} day${
+            daysLeft !== 1 ? "s" : ""
+          } ${hoursLeft} hour${hoursLeft !== 1 ? "s" : ""}`;
+        }
+      } else {
+        timeLeftText = "No deadline";
+      }
+
+      return {
+        _id: event._id,
+        title: event.title,
+        registrationDeadline: deadline ? deadline.toISOString() : null,
+        timeLeft: timeLeftText,
+        expired,
+      };
+    });
+
+    // Sort by expired first, then nearest deadline
+    processedEvents.sort((a, b) => {
+      if (a.expired && b.expired) {
+        return (
+          new Date(a.registrationDeadline) - new Date(b.registrationDeadline)
+        );
+      }
+      if (a.expired && !b.expired) return -1;
+      if (!a.expired && b.expired) return 1;
+      return (
+        new Date(a.registrationDeadline) - new Date(b.registrationDeadline)
+      );
+    });
+
+    res.status(200).json(processedEvents.slice(0, limitNumber));
+  } catch (error) {
+    console.error("Error fetching events by deadline:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while fetching events." });
+  }
+});
+
 // Apply for an Upcoming Event
 router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;

@@ -62,6 +62,45 @@ router.get("/CheckEmail", async (req, res) => {
   }
 });
 
+// Get User Role by ID or Email
+router.get("/Role", async (req, res) => {
+  try {
+    const { id, email } = req.query;
+
+    if (!id && !email) {
+      return res
+        .status(400)
+        .json({ message: "Please provide either id or email." });
+    }
+
+    let user;
+
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid ID format." });
+      }
+      user = await UsersCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { role: 1, _id: 0 } }
+      );
+    } else if (email) {
+      user = await UsersCollection.findOne(
+        { email },
+        { projection: { role: 1, _id: 0 } }
+      );
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json(user); // returns { role: "Member" }
+  } catch (error) {
+    console.error("GET /users/role error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // Add Document to User's documents array
 router.put("/AddDocument/:id", async (req, res) => {
   const id = req.params.id;

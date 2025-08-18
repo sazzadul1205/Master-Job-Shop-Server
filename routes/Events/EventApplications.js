@@ -187,6 +187,80 @@ router.get("/LatestApplications", async (req, res) => {
   }
 });
 
+// GET: Daily Applications count by eventIds or all if none provided
+router.get("/DailyEventApplicationsPosted", async (req, res) => {
+  try {
+    let { eventIds } = req.query;
+
+    // Build match stage
+    const matchStage = {};
+    if (eventIds) {
+      if (typeof eventIds === "string") {
+        // Handle comma-separated values
+        eventIds = eventIds.split(",").map((id) => id.trim());
+      }
+      matchStage.eventId = { $in: eventIds };
+    }
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          appliedAtDate: {
+            $convert: {
+              input: "$appliedAt",
+              to: "date",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      { $match: { appliedAtDate: { $ne: null } } },
+      {
+        $group: {
+          _id: {
+            date: {
+              $dateToString: { format: "%Y-%m-%d", date: "$appliedAtDate" },
+            },
+            eventId: "$eventId",
+          },
+          applicationCount: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id.date": 1 } },
+      {
+        $project: {
+          _id: 0,
+          appliedDate: "$_id.date",
+          eventId: "$_id.eventId",
+          applicationCount: 1,
+        },
+      },
+    ];
+
+    const results = await EventApplicationsCollection.aggregate(
+      pipeline
+    ).toArray();
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: eventIds
+          ? "No applications found for the given eventIds."
+          : "No applications found.",
+      });
+    }
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("GET /DailyEventApplicationsPosted error:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching daily applications.",
+      error: error.message,
+    });
+  }
+});
+
 // POST: Submit new application
 router.post("/", async (req, res) => {
   try {

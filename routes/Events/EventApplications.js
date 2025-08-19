@@ -233,7 +233,6 @@ router.get("/DailyEventApplicationsPosted", async (req, res) => {
         $project: {
           _id: 0,
           appliedDate: "$_id.date",
-          eventId: "$_id.eventId",
           applicationCount: 1,
         },
       },

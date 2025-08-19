@@ -173,6 +173,77 @@ router.get("/LatestBids", async (req, res) => {
   }
 });
 
+// GET: Daily Bids count by gigIds or all if none provided
+router.get("/DailyGigBidsPosted", async (req, res) => {
+  try {
+    let { gigIds } = req.query;
+
+    // Build match stage
+    const matchStage = {};
+    if (gigIds) {
+      if (typeof gigIds === "string") {
+        // Handle comma-separated values
+        gigIds = gigIds.split(",").map((id) => id.trim());
+      }
+      matchStage.gigId = { $in: gigIds };
+    }
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          submittedAtDate: {
+            $convert: {
+              input: "$submittedAt",
+              to: "date",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      { $match: { submittedAtDate: { $ne: null } } },
+      {
+        $group: {
+          _id: {
+            date: {
+              $dateToString: { format: "%Y-%m-%d", date: "$submittedAtDate" },
+            },
+            gigId: "$gigId",
+          },
+          bidCount: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id.date": 1 } },
+      {
+        $project: {
+          _id: 0,
+          submittedDate: "$_id.date",
+          bidCount: 1,
+        },
+      },
+    ];
+
+    const results = await GigBidsCollection.aggregate(pipeline).toArray();
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: gigIds
+          ? "No bids found for the given gigIds."
+          : "No bids found.",
+      });
+    }
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("GET /DailyGigBidsPosted error:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching daily gig bids.",
+      error: error.message,
+    });
+  }
+});
+
 // POST: Submit new bid
 router.post("/", async (req, res) => {
   try {

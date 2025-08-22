@@ -59,6 +59,9 @@ const MentorRequest = require("./routes/MentorRequest/MentorRequest");
 // Employer API routes
 const Employers = require("./routes/Employers/Employers");
 
+// Mentor API routes
+const Mentors = require("./routes/Mentors/Mentors");
+
 require("dotenv").config();
 const app = express();
 
@@ -98,44 +101,61 @@ app.post("/jwt", async (req, res) => {
   }
 });
 
+// APP routes
+
+// Basic APP routes
 app.use("/Users", Users);
 app.use("/Blogs", Blogs);
+app.use("/AboutUs", AboutUs);
 app.use("/ChooseUs", ChooseUs);
 app.use("/NewsLetter", NewsLetter);
 app.use("/Home-Banner", HomeBanner);
 app.use("/Testimonials", Testimonials);
 
+// Trainers APP routes
 app.use("/JobApplications", JobApplications);
 app.use("/Jobs", Jobs);
 
+// Gigs APP routes
 app.use("/GigBids", GigBids);
 app.use("/Gigs", Gigs);
 
+// Company APP routes
 app.use("/Company", Company);
 
+// Insights APP routes
 app.use("/Insights", Insights);
 
+// Events APP routes
 app.use("/EventApplications", EventApplications);
 app.use("/Events", Events);
 
+// Courses APP routes
 app.use("/CourseApplications", CourseApplications);
 app.use("/Courses", Courses);
 
+// Mentorship APP routes
 app.use("/MentorshipApplications", MentorshipApplications);
 app.use("/Mentorship", Mentorship);
 
+// Internship APP routes
 app.use("/InternshipApplications", InternshipApplications);
 app.use("/Internship", Internship);
 
+// PDF Upload APP route
 app.use("/PDFUpload", PDFUpload);
 
-app.use("/AboutUs", AboutUs);
-
+// Become Employer APP route
 app.use("/EmployerRequest", EmployerRequest);
 
+// Become Mentor APP route
 app.use("/MentorRequest", MentorRequest);
 
+// Employer APP routes
 app.use("/Employers", Employers);
+
+// Mentor APP routes
+app.use("/Mentors", Mentors);
 
 // Root health-check
 app.get("/", (req, res) => {

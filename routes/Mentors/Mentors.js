@@ -80,6 +80,42 @@ router.post("/", async (req, res) => {
   }
 });
 
+// PUT - Update a mentor by ID
+router.put("/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const updateData = req.body;
+
+    // Validate the ID
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    // Optional: prevent updating _id
+    if (updateData._id) delete updateData._id;
+
+    // Update the mentor document
+    const result = await MentorsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Mentor not found" });
+    }
+
+    // Fetch the updated document to return
+    const updatedMentor = await MentorsCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    res.status(200).json(updatedMentor);
+  } catch (error) {
+    console.error("Error updating mentor:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // DELETE - Delete a mentor by ID
 router.delete("/:id", async (req, res) => {
   try {

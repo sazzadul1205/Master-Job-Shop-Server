@@ -12,6 +12,7 @@ router.get("/", async (req, res) => {
     const { id, email } = req.query;
     let query = {};
 
+    // Search by ID
     if (id) {
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ message: "Invalid ID format" });
@@ -19,12 +20,18 @@ router.get("/", async (req, res) => {
       query._id = new ObjectId(id);
     }
 
+    // Search by Email
     if (email) {
-      query.email = email;
+      query.email = email.trim().toLowerCase(); // normalize email
     }
 
     const mentors = await MentorsCollection.find(query).toArray();
 
+    if (!mentors || mentors.length === 0) {
+      return res.status(404).json({ message: "No mentor(s) found." });
+    }
+
+    // If only one result, return an object instead of array
     const response = mentors.length === 1 ? mentors[0] : mentors;
     return res.status(200).json(response);
   } catch (error) {

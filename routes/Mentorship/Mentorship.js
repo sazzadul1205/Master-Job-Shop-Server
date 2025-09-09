@@ -9,7 +9,7 @@ const MentorshipCollection = client
 
 // Get Mentorship
 router.get("/", async (req, res) => {
-  const { id, postedBy, mentorshipIds } = req.query;
+  const { id, postedBy, mentorEmail, mentorshipIds } = req.query;
   const query = {};
 
   // Single ID
@@ -37,9 +37,11 @@ router.get("/", async (req, res) => {
     }
   }
 
-  // Posted By
-  if (postedBy) {
-    query.postedBy = postedBy;
+  // Posted By or Mentor Email
+  if (postedBy || mentorEmail) {
+    query.$or = [];
+    if (postedBy) query.$or.push({ postedBy });
+    if (mentorEmail) query.$or.push({ "Mentor.email": mentorEmail });
   }
 
   try {

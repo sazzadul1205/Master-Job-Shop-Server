@@ -9,18 +9,20 @@ const MentorshipCollection = client
 
 // Get Mentorship
 router.get("/", async (req, res) => {
-  const { id, postedBy, mentorEmail, mentorshipIds } = req.query;
-  const query = {};
+  const { id, postedBy, mentorEmail, mentorshipIds, archived, status } =
+    req.query;
+
+  const query = { $and: [] };
 
   // Single ID
   if (id) {
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid id format." });
     }
-    query._id = new ObjectId(id);
+    query.$and.push({ _id: new ObjectId(id) });
   }
 
-  // Multiple Mentorship IDs (comma-separated)
+  // Multiple Mentorship IDs
   if (mentorshipIds) {
     try {
       const idsArray = mentorshipIds.split(",").map((id) => {
@@ -28,7 +30,7 @@ router.get("/", async (req, res) => {
         if (!ObjectId.isValid(trimmed)) throw new Error();
         return new ObjectId(trimmed);
       });
-      query._id = { $in: idsArray };
+      query.$and.push({ _id: { $in: idsArray } });
     } catch (err) {
       return res.status(400).json({
         message:
@@ -39,14 +41,44 @@ router.get("/", async (req, res) => {
 
   // Posted By or Mentor Email
   if (postedBy || mentorEmail) {
-    query.$or = [];
-    if (postedBy) query.$or.push({ postedBy });
-    if (mentorEmail) query.$or.push({ "Mentor.email": mentorEmail });
+    const emailOr = [];
+    if (postedBy) emailOr.push({ postedBy });
+    if (mentorEmail) emailOr.push({ "Mentor.email": mentorEmail });
+    if (emailOr.length > 0) query.$and.push({ $or: emailOr });
   }
 
+  // Archived filter
+  if (archived !== undefined) {
+    if (archived === "true" || archived === "false") {
+      const isArchived = archived === "true";
+      if (isArchived) {
+        query.$and.push({ archived: true });
+      } else {
+        query.$and.push({
+          $or: [{ archived: false }, { archived: { $exists: false } }],
+        });
+      }
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Invalid archived value. Use true or false." });
+    }
+  }
+
+  // Status filter
+  if (status) {
+    const statuses = status.split(",").map((s) => s.trim().toLowerCase());
+    query.$and.push({ status: { $in: statuses } });
+  }
+
+  // If $and is empty, just query everything
+  const finalQuery = query.$and.length > 0 ? { $and: query.$and } : {};
+
   try {
-    const results = await MentorshipCollection.find(query).toArray();
-    res.send(results.length === 1 ? results[0] : results);
+    const results = await MentorshipCollection.find(finalQuery).toArray();
+    res.send(
+      Array.isArray(results) && results.length === 1 ? results[0] : results
+    );
   } catch (error) {
     console.error("Error fetching mentorship:", error);
     res.status(500).send("Server error.");

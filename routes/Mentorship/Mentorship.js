@@ -67,7 +67,11 @@ router.get("/", async (req, res) => {
 
   // Status filter
   if (status) {
-    const statuses = status.split(",").map((s) => s.trim().toLowerCase());
+    const statuses = status
+      .split(",")
+      .map((s) =>
+        s.trim().toLowerCase() === "onhold" ? "onHold" : s.trim().toLowerCase()
+      );
     query.$and.push({ status: { $in: statuses } });
   }
 

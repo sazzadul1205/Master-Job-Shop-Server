@@ -109,6 +109,44 @@ router.post("/", async (req, res) => {
   }
 });
 
+// PUT: Update application status
+router.put("/Status/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // new status value
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required." });
+    }
+
+    let objectId;
+    try {
+      objectId = new ObjectId(id);
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid ID format." });
+    }
+
+    // Update or create the 'status' field
+    const result = await MentorshipCollection.updateOne(
+      { _id: objectId },
+      { $set: { status: status } },
+      { upsert: false } // do not create new doc, only update existing
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Application not found." });
+    }
+
+    res.json({
+      message: "Status updated successfully.",
+      updatedStatus: status,
+    });
+  } catch (error) {
+    console.error("PUT /MentorshipApplications/update-status error:", error);
+    res.status(500).json({ message: "Server error updating status." });
+  }
+});
+
 // DELETE: Remove mentorship application by ID
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;

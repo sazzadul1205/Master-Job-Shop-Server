@@ -9,18 +9,30 @@ const UsersCollection = client.db("Master-Job-Shop").collection("Users");
 // Get All Users or a Specific User by Email
 router.get("/", async (req, res) => {
   try {
-    const { email } = req.query;
+    const { email, id } = req.query;
 
-    if (email) {
-      const user = await UsersCollection.findOne({ email });
-
+    // Fetch by _id
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid user ID format." });
+      }
+      const user = await UsersCollection.findOne({ _id: new ObjectId(id) });
       if (!user) {
         return res.status(404).json({ message: "User not found." });
       }
-
       return res.status(200).json(user);
     }
 
+    // Fetch by email
+    if (email) {
+      const user = await UsersCollection.findOne({ email });
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+      return res.status(200).json(user);
+    }
+
+    // Fetch all users
     const users = await UsersCollection.find().toArray();
     res.status(200).json(users);
   } catch (error) {

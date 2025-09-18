@@ -7,7 +7,7 @@ const CoursesCollection = client.db("Master-Job-Shop").collection("Courses");
 
 // Get Courses
 router.get("/", async (req, res) => {
-  const { id, postedBy, email, courseIds } = req.query;
+  const { id, postedBy, email, courseIds, mentorEmail } = req.query;
 
   try {
     let query = {};
@@ -40,12 +40,24 @@ router.get("/", async (req, res) => {
 
     // Additional filters (only when courseIds/id are not used)
     else {
-      if (postedBy) {
-        query.postedBy = postedBy;
+      // Initialize $and array for combining multiple conditions
+      query.$and = [];
+
+      // Posted By or Mentor Email
+      if (postedBy || mentorEmail) {
+        const emailOr = [];
+        if (postedBy) emailOr.push({ postedBy });
+        if (mentorEmail) emailOr.push({ "Mentor.email": mentorEmail });
+        if (emailOr.length > 0) query.$and.push({ $or: emailOr });
       }
+
+      // Applicant Email
       if (email) {
-        query["applicants.applicantEmail"] = email;
+        query.$and.push({ "applicants.applicantEmail": email });
       }
+
+      // Remove $and if empty to avoid empty $and issues
+      if (query.$and.length === 0) delete query.$and;
     }
 
     const results = await CoursesCollection.find(query).toArray();

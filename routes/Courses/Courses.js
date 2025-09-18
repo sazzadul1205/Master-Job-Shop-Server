@@ -156,6 +156,44 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+// Toggle Archive Status
+router.put("/Archive/:id", async (req, res) => {
+  const { id } = req.params;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format." });
+  }
+
+  try {
+    // Find the mentorship first
+    const mentorship = await CoursesCollection.findOne({
+      _id: new ObjectId(id),
+    });
+    if (!mentorship) {
+      return res.status(404).json({ message: "Mentorship not found." });
+    }
+
+    // Determine new archive status
+    const newArchivedStatus = !mentorship.archived; // if undefined, !undefined => true
+
+    // Update the mentorship
+    await CoursesCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { archived: newArchivedStatus } }
+    );
+
+    res.status(200).json({
+      message: `Mentorship ${
+        newArchivedStatus ? "Archived" : "Un-Archived"
+      } successfully.`,
+      archived: newArchivedStatus,
+    });
+  } catch (error) {
+    console.error("Error toggling archive status:", error);
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
 // Delete a Course by ID
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;

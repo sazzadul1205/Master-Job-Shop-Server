@@ -7,7 +7,7 @@ const MentorshipCollection = client
   .db("Master-Job-Shop")
   .collection("Mentorship");
 
-// Get Mentorship
+// GET: Get Mentorship
 router.get("/", async (req, res) => {
   const { id, postedBy, mentorEmail, mentorshipIds, archived, status } =
     req.query;
@@ -89,7 +89,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Total Posted Mentorship Count API
+// GET: Total Posted Mentorship Count API
 router.get("/MentorshipCount", async (req, res) => {
   try {
     const count = await MentorshipCollection.countDocuments();
@@ -100,7 +100,7 @@ router.get("/MentorshipCount", async (req, res) => {
   }
 });
 
-// Post Mentorship
+// POST: Post Mentorship
 router.post("/", async (req, res) => {
   try {
     const request = req.body;
@@ -112,7 +112,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Apply Review for a Mentorship by ID
+// POST: ply Review for a Mentorship by ID
 router.post("/Review/:id", async (req, res) => {
   const id = req.params.id;
   const reviewData = req.body;
@@ -135,7 +135,7 @@ router.post("/Review/:id", async (req, res) => {
   }
 });
 
-// Apply for a Mentorship
+// POST: Apply for a Mentorship
 router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const applicantData = req.body;
@@ -158,7 +158,7 @@ router.post("/Apply/:id", async (req, res) => {
   }
 });
 
-// Update a Mentorship by ID
+// PUT: Update a Mentorship by ID
 router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updateData = req.body;
@@ -184,7 +184,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// Toggle Archive Status
+// PUT: Toggle Archive Status
 router.put("/Archive/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -222,7 +222,7 @@ router.put("/Archive/:id", async (req, res) => {
   }
 });
 
-// PATCH: Update application status by ID
+// PATCH: Update Mentorship status by ID
 router.patch("/Status/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -250,12 +250,13 @@ router.patch("/Status/:id", async (req, res) => {
 
     res.json({ message: "Status updated successfully.", updatedId: id });
   } catch (error) {
-    console.error("PATCH /MentorshipApplications/:id/status error:", error);
+    console.error("PATCH Mentorship ID status Updating error:", error);
+
     res.status(500).json({ message: "Server error updating status." });
   }
 });
 
-// Delete a Mentorship by ID
+// DELETE: Delete a Mentorship by ID
 router.delete("/:id", async (req, res) => {
   const id = req.params.id;
   const query = { _id: new ObjectId(id) };
@@ -278,7 +279,7 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// Delete a review by reviewerEmail from a mentorship post
+// DELETE: Delete a review by reviewerEmail from a mentorship post
 router.delete("/Reviews/:id", async (req, res) => {
   const mentorshipId = req.params.id;
   const { reviewerEmail } = req.body;
@@ -304,7 +305,7 @@ router.delete("/Reviews/:id", async (req, res) => {
   }
 });
 
-// Delete an applicant by applicantEmail from a mentorship post
+// DELETE: Delete an applicant by applicantEmail from a mentorship post
 router.delete("/Apply/:id", async (req, res) => {
   const mentorshipId = req.params.id;
   const { applicantEmail } = req.body;

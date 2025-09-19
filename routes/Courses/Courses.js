@@ -7,7 +7,8 @@ const CoursesCollection = client.db("Master-Job-Shop").collection("Courses");
 
 // Get Courses
 router.get("/", async (req, res) => {
-  const { id, postedBy, email, courseIds, mentorEmail } = req.query;
+  const { id, postedBy, email, courseIds, mentorEmail, status, archived } =
+    req.query;
 
   try {
     let query = {};
@@ -56,8 +57,38 @@ router.get("/", async (req, res) => {
         query.$and.push({ "applicants.applicantEmail": email });
       }
 
-      // Remove $and if empty to avoid empty $and issues
-      if (query.$and.length === 0) delete query.$and;
+      // Status filter
+      if (status) {
+        const statuses = status
+          .split(",")
+          .map((s) =>
+            s.trim().toLowerCase() === "onhold"
+              ? "onHold"
+              : s.trim().toLowerCase()
+          );
+        query.$and.push({ status: { $in: statuses } });
+      }
+
+      // Archived filter
+      if (archived !== undefined) {
+        if (archived === "true" || archived === "false") {
+          const isArchived = archived === "true";
+          if (isArchived) {
+            query.$and.push({ archived: true });
+          } else {
+            query.$and.push({
+              $or: [{ archived: false }, { archived: { $exists: false } }],
+            });
+          }
+        } else {
+          return res
+            .status(400)
+            .json({ message: "Invalid archived value. Use true or false." });
+        }
+      }
+
+      // If $and is empty, just query everything
+      query = query.$and.length > 0 ? { $and: query.$and } : {};
     }
 
     const results = await CoursesCollection.find(query).toArray();
@@ -84,6 +115,26 @@ router.get("/CoursesCount", async (req, res) => {
   }
 });
 
+// Create a new Course
+router.post("/", async (req, res) => {
+  const courseData = req.body;
+
+  if (!courseData || Object.keys(courseData).length === 0) {
+    return res.status(400).send({ message: "Course data is required." });
+  }
+
+  try {
+    const result = await CoursesCollection.insertOne(courseData);
+    res.status(201).send({
+      message: "Course created successfully.",
+      insertedId: result.insertedId,
+    });
+  } catch (error) {
+    console.error("Error creating course:", error);
+    res.status(500).send({ message: "Error creating course.", error });
+  }
+});
+
 // Apply for a Course
 router.post("/Apply/:id", async (req, res) => {
   const { courseId } = req.params;
@@ -107,26 +158,6 @@ router.post("/Apply/:id", async (req, res) => {
   } catch (error) {
     console.error("Error applying for the course:", error);
     res.status(500).send({ message: "Error applying for the course", error });
-  }
-});
-
-// Create a new Course
-router.post("/", async (req, res) => {
-  const courseData = req.body;
-
-  if (!courseData || Object.keys(courseData).length === 0) {
-    return res.status(400).send({ message: "Course data is required." });
-  }
-
-  try {
-    const result = await CoursesCollection.insertOne(courseData);
-    res.status(201).send({
-      message: "Course created successfully.",
-      insertedId: result.insertedId,
-    });
-  } catch (error) {
-    console.error("Error creating course:", error);
-    res.status(500).send({ message: "Error creating course.", error });
   }
 });
 
@@ -191,6 +222,39 @@ router.put("/Archive/:id", async (req, res) => {
   } catch (error) {
     console.error("Error toggling archive status:", error);
     res.status(500).json({ message: "Server error." });
+  }
+});
+
+// PATCH: Update Course status by ID
+router.patch("/Status/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ message: "Status value is required." });
+    }
+
+    let objectId;
+    try {
+      objectId = new ObjectId(id);
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid ID format." });
+    }
+
+    const result = await CoursesCollection.updateOne(
+      { _id: objectId },
+      { $set: { status } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Application not found." });
+    }
+
+    res.json({ message: "Status updated successfully.", updatedId: id });
+  } catch (error) {
+    console.error("PATCH Course ID status Updating error:", error);
+    res.status(500).json({ message: "Server error updating status." });
   }
 });
 

@@ -9,7 +9,7 @@ const { connectDB } = require("./config/db");
 // Basic API Routes
 const Testimonials = require("./routes/Testimonials/Testimonials");
 const HomeBanner = require("./routes/HomeBanner/HomeBanner");
-const NewsLetter = require("./routes/NewsLetter/NewsLetter");
+const NewsLetter = require("./routes/Newsletter/Newsletter");
 const ChooseUs = require("./routes/ChooseUs/ChooseUs");
 const Users = require("./routes/User/User");
 const Blogs = require("./routes/Blogs/Blogs");
@@ -68,7 +68,11 @@ const app = express();
 // CORS – add your prod domains here
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://192.168.0.11:5173"],
+    origin: [
+      "http://localhost:5173",
+      "http://192.168.0.11:5173",
+      "https://master-job-shop-server-qwbp5hp6w-sazzadul-islams-projects.vercel.app/",
+    ],
     credentials: true,
   })
 );
@@ -171,11 +175,18 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
 // Export for Vercel serverless
 module.exports = app;
+
+// skipAutoDetectionConfirmation=1
+
+// DB_USER=psazzadul1205
+// DB_PASSWORD=FlW9LY8lWnh2KWnK
+
+// # JWT Secret
+// JWT_SECRET=Sx4#t9@G!ePz$kL3vW1Qf8%YmJ2Rb6&ZcXdNpAoTu
+
+// # Cloudanary APIs
+// CLOUDINARY_CLOUD_NAME=dqzjbbthi
+// CLOUDINARY_API_KEY=575554853573212
+// CLOUDINARY_API_SECRET=PRsQvMnXlzHKrJpAfrhsyeQNp_0

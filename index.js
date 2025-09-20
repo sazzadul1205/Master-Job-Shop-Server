@@ -175,18 +175,11 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
 // Export for Vercel serverless
 module.exports = app;
-
-// skipAutoDetectionConfirmation=1
-
-// DB_USER=psazzadul1205
-// DB_PASSWORD=FlW9LY8lWnh2KWnK
-
-// # JWT Secret
-// JWT_SECRET=Sx4#t9@G!ePz$kL3vW1Qf8%YmJ2Rb6&ZcXdNpAoTu
-
-// # Cloudanary APIs
-// CLOUDINARY_CLOUD_NAME=dqzjbbthi
-// CLOUDINARY_API_KEY=575554853573212
-// CLOUDINARY_API_SECRET=PRsQvMnXlzHKrJpAfrhsyeQNp_0

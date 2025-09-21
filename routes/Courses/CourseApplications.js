@@ -59,11 +59,11 @@ router.get("/Exists", async (req, res) => {
 // GET: Fetch applications grouped by courseIds
 router.get("/ByCourse", async (req, res) => {
   try {
-    let { courseId } = req.query; // accept "courseIds" (singular) as string
+    let { courseId } = req.query;
 
     if (!courseId) {
       return res.status(400).json({
-        message: "Please provide courseIds(s) as a query parameter.",
+        message: "Please provide courseId(s) as a query parameter.",
       });
     }
 
@@ -72,18 +72,18 @@ router.get("/ByCourse", async (req, res) => {
 
     // Fetch all documents matching the courseIds
     const results = await CourseCollection.find({
-      mentorshipId: { $in: courseIds },
+      courseId: { $in: courseIds },
     }).toArray();
 
-    // Group results by mentorshipId
+    // Group results by courseId
     const groupedResults = courseIds.reduce((acc, id) => {
-      acc[id] = results.filter((doc) => doc.mentorshipId === id);
+      acc[id] = results.filter((doc) => doc.courseId === id);
       return acc;
     }, {});
 
     res.json(groupedResults);
   } catch (error) {
-    console.error("GET /MentorshipApplications/ByMentorship error:", error);
+    console.error("GET /Applications/ByCourse error:", error);
     res.status(500).json({
       message: "Server error fetching applications by courseIds.",
     });

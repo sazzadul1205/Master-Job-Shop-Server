@@ -100,6 +100,35 @@ router.get("/MentorshipCount", async (req, res) => {
   }
 });
 
+// GET: Get Mentorship Title by ID
+router.get("/Title", async (req, res) => {
+  const { id } = req.query;
+
+  if (!id) {
+    return res.status(400).json({ message: "Mentorship ID is required." });
+  }
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format." });
+  }
+
+  try {
+    const mentorship = await MentorshipCollection.findOne(
+      { _id: new ObjectId(id) },
+      { projection: { title: 1 } } // Only return the title field
+    );
+
+    if (!mentorship) {
+      return res.status(404).json({ message: "Mentorship not found." });
+    }
+
+    res.json({ title: mentorship.title });
+  } catch (err) {
+    console.error("Error fetching mentorship title:", err);
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
 // POST: Post Mentorship
 router.post("/", async (req, res) => {
   try {

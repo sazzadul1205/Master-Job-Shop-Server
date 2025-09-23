@@ -115,6 +115,35 @@ router.get("/CoursesCount", async (req, res) => {
   }
 });
 
+// GET: Get Course Title by ID
+router.get("/Title", async (req, res) => {
+  const { id } = req.query;
+
+  if (!id) {
+    return res.status(400).json({ message: "Course ID is required." });
+  }
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format." });
+  }
+
+  try {
+    const course = await CoursesCollection.findOne(
+      { _id: new ObjectId(id) },
+      { projection: { title: 1 } } // Only return the title
+    );
+
+    if (!course) {
+      return res.status(404).json({ message: "Course not found." });
+    }
+
+    res.json({ title: course.title });
+  } catch (err) {
+    console.error("Error fetching course title:", err);
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
 // Create a new Course
 router.post("/", async (req, res) => {
   const courseData = req.body;

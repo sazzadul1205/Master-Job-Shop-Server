@@ -100,31 +100,55 @@ router.get("/MentorshipCount", async (req, res) => {
   }
 });
 
-// GET: Get Mentorship Title by ID
+// GET: Get Mentorship Titles by ID(s)
 router.get("/Title", async (req, res) => {
-  const { id } = req.query;
+  let { id, ids } = req.query;
 
-  if (!id) {
-    return res.status(400).json({ message: "Mentorship ID is required." });
+  let mentorshipIds = [];
+
+  if (ids) {
+    try {
+      mentorshipIds = JSON.parse(ids);
+      if (!Array.isArray(mentorshipIds)) throw new Error();
+    } catch {
+      return res
+        .status(400)
+        .json({ message: "Invalid 'ids' format. Must be a JSON array." });
+    }
+  } else if (id) {
+    mentorshipIds = [id];
+  } else {
+    return res.status(400).json({ message: "Mentorship ID(s) required." });
   }
 
-  if (!ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Invalid ID format." });
+  const invalidIds = mentorshipIds.filter((mId) => !ObjectId.isValid(mId));
+  if (invalidIds.length > 0) {
+    return res
+      .status(400)
+      .json({ message: "Invalid ID format in array.", invalidIds });
   }
 
   try {
-    const mentorship = await MentorshipCollection.findOne(
-      { _id: new ObjectId(id) },
-      { projection: { title: 1 } } // Only return the title field
-    );
+    const objectIds = mentorshipIds.map((mId) => new ObjectId(mId));
 
-    if (!mentorship) {
-      return res.status(404).json({ message: "Mentorship not found." });
+    const mentorshipDocs = await MentorshipCollection.find(
+      { _id: { $in: objectIds } },
+      { projection: { title: 1 } }
+    ).toArray();
+
+    if (!mentorshipDocs || mentorshipDocs.length === 0) {
+      return res.status(404).json({ message: "No mentorship found." });
     }
 
-    res.json({ title: mentorship.title });
+    // Map results to preserve input order
+    const result = mentorshipIds.map((mId) => {
+      const doc = mentorshipDocs.find((m) => m._id.toString() === mId);
+      return { id: mId, title: doc ? doc.title : null };
+    });
+
+    res.json(result);
   } catch (err) {
-    console.error("Error fetching mentorship title:", err);
+    console.error("Error fetching mentorship titles:", err);
     res.status(500).json({ message: "Server error." });
   }
 });

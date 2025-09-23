@@ -115,31 +115,57 @@ router.get("/CoursesCount", async (req, res) => {
   }
 });
 
-// GET: Get Course Title by ID
+// GET: Get Course Titles by ID(s)
 router.get("/Title", async (req, res) => {
-  const { id } = req.query;
+  let { id, ids } = req.query;
 
-  if (!id) {
-    return res.status(400).json({ message: "Course ID is required." });
+  // Normalize input: either single ID or array of IDs
+  let courseIds = [];
+
+  if (ids) {
+    try {
+      courseIds = JSON.parse(ids); // expect ids as JSON array string
+      if (!Array.isArray(courseIds)) throw new Error();
+    } catch {
+      return res
+        .status(400)
+        .json({ message: "Invalid 'ids' format. Must be a JSON array." });
+    }
+  } else if (id) {
+    courseIds = [id];
+  } else {
+    return res.status(400).json({ message: "Course ID(s) required." });
   }
 
-  if (!ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Invalid ID format." });
+  // Validate all IDs
+  const invalidIds = courseIds.filter((cId) => !ObjectId.isValid(cId));
+  if (invalidIds.length > 0) {
+    return res
+      .status(400)
+      .json({ message: "Invalid ID format in array.", invalidIds });
   }
 
   try {
-    const course = await CoursesCollection.findOne(
-      { _id: new ObjectId(id) },
-      { projection: { title: 1 } } // Only return the title
-    );
+    const objectIds = courseIds.map((cId) => new ObjectId(cId));
 
-    if (!course) {
-      return res.status(404).json({ message: "Course not found." });
+    const courses = await CoursesCollection.find(
+      { _id: { $in: objectIds } },
+      { projection: { title: 1 } }
+    ).toArray();
+
+    if (!courses || courses.length === 0) {
+      return res.status(404).json({ message: "No courses found." });
     }
 
-    res.json({ title: course.title });
+    // Map the results to match input order and return titles
+    const result = courseIds.map((cId) => {
+      const course = courses.find((c) => c._id.toString() === cId);
+      return { id: cId, title: course ? course.title : null };
+    });
+
+    res.json(result);
   } catch (err) {
-    console.error("Error fetching course title:", err);
+    console.error("Error fetching course titles:", err);
     res.status(500).json({ message: "Server error." });
   }
 });

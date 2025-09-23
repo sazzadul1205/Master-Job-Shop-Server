@@ -59,34 +59,34 @@ router.get("/Exists", async (req, res) => {
 // GET: Fetch applications grouped by courseIds
 router.get("/ByCourse", async (req, res) => {
   try {
-    let { courseId } = req.query;
-
+    let { courseId, status } = req.query;
     if (!courseId) {
-      return res.status(400).json({
-        message: "Please provide courseId(s) as a query parameter.",
-      });
+      return res.status(400).json({ error: "courseId is required" });
     }
 
-    // Split comma-separated string into array
-    let courseIds = courseId.split(",");
+    const ids = courseId.split(",");
 
-    // Fetch all documents matching the courseIds
-    const results = await CourseCollection.find({
-      courseId: { $in: courseIds },
-    }).toArray();
+    // Build query
+    const query = { courseId: { $in: ids } };
+    if (status && status !== "all") {
+      query.status = status; // keep case as stored in DB
+    }
 
-    // Group results by courseId
-    const groupedResults = courseIds.reduce((acc, id) => {
-      acc[id] = results.filter((doc) => doc.courseId === id);
-      return acc;
-    }, {});
+    // Fetch from Mongo (sort by appliedAt desc)
+    const data = await CourseCollection.find(query)
+      .sort({ appliedAt: -1 })
+      .toArray();
 
-    res.json(groupedResults);
-  } catch (error) {
-    console.error("GET /Applications/ByCourse error:", error);
-    res.status(500).json({
-      message: "Server error fetching applications by courseIds.",
+    // Group results
+    const grouped = {};
+    ids.forEach((id) => {
+      grouped[id] = data.filter((app) => app.courseId === id);
     });
+
+    res.json(grouped);
+  } catch (err) {
+    console.error("ByCourse error:", err);
+    res.status(500).json({ error: "Server error in ByCourse" });
   }
 });
 

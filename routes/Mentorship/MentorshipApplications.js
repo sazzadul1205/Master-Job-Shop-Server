@@ -61,34 +61,31 @@ router.get("/Exists", async (req, res) => {
 // GET: Fetch applications grouped by mentorshipIds
 router.get("/ByMentorship", async (req, res) => {
   try {
-    let { mentorshipId } = req.query; // accept "mentorshipId" (singular) as string
-
+    let { mentorshipId, status } = req.query;
     if (!mentorshipId) {
-      return res.status(400).json({
-        message: "Please provide mentorshipId(s) as a query parameter.",
-      });
+      return res.status(400).json({ error: "mentorshipId is required" });
     }
 
-    // Split comma-separated string into array
-    let mentorshipIds = mentorshipId.split(",");
+    const ids = mentorshipId.split(",");
 
-    // Fetch all documents matching the mentorshipIds
-    const results = await MentorshipCollection.find({
-      mentorshipId: { $in: mentorshipIds },
-    }).toArray();
+    const query = { mentorshipId: { $in: ids } };
+    if (status && status !== "all") {
+      query.status = status;
+    }
 
-    // Group results by mentorshipId
-    const groupedResults = mentorshipIds.reduce((acc, id) => {
-      acc[id] = results.filter((doc) => doc.mentorshipId === id);
-      return acc;
-    }, {});
+    const data = await MentorshipCollection.find(query)
+      .sort({ appliedAt: -1 })
+      .toArray();
 
-    res.json(groupedResults);
-  } catch (error) {
-    console.error("GET /MentorshipApplications/ByMentorship error:", error);
-    res.status(500).json({
-      message: "Server error fetching applications by mentorshipIds.",
+    const grouped = {};
+    ids.forEach((id) => {
+      grouped[id] = data.filter((app) => app.mentorshipId === id);
     });
+
+    res.json(grouped);
+  } catch (err) {
+    console.error("ByMentorship error:", err);
+    res.status(500).json({ error: "Server error in ByMentorship" });
   }
 });
 

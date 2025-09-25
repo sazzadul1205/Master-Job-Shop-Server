@@ -3,14 +3,14 @@ const router = express.Router();
 const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
-const ChooseUsCollection = client
+const MentorEmailCollection = client
   .db("Master-Job-Shop")
   .collection("Mentor_Emails");
 
 // GET all mentor emails
 router.get("/", async (req, res) => {
   try {
-    const emails = await ChooseUsCollection.find({}).toArray();
+    const emails = await MentorEmailCollection.find({}).toArray();
     res.status(200).json(emails);
   } catch (err) {
     console.error(err);
@@ -22,7 +22,7 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const email = await ChooseUsCollection.findOne({ _id: ObjectId(id) });
+    const email = await MentorEmailCollection.findOne({ _id: ObjectId(id) });
     if (!email) {
       return res.status(404).json({ error: "Email not found" });
     }
@@ -43,7 +43,7 @@ router.post("/", async (req, res) => {
 
   try {
     // Insert everything in the request body
-    const result = await ChooseUsCollection.insertOne(payload);
+    const result = await MentorEmailCollection.insertOne(payload);
 
     res.status(201).json({
       message: "Mentor email logged",
@@ -59,7 +59,7 @@ router.post("/", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await ChooseUsCollection.deleteOne({ _id: ObjectId(id) });
+    const result = await MentorEmailCollection.deleteOne({ _id: ObjectId(id) });
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: "Email not found" });
     }

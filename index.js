@@ -62,6 +62,9 @@ const Employers = require("./routes/Employers/Employers");
 // Mentor API routes
 const Mentors = require("./routes/Mentors/Mentors");
 
+// Mentors Email API routes
+const MentorEmails = require("./routes/Emails/MentorEmails");
+
 require("dotenv").config();
 const app = express();
 
@@ -160,6 +163,9 @@ app.use("/Employers", Employers);
 
 // Mentor APP routes
 app.use("/Mentors", Mentors);
+
+// Mentor Emails APP routes
+app.use("/MentorEmails", MentorEmails);
 
 // Root health-check
 app.get("/", (req, res) => {

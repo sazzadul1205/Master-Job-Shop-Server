@@ -6,63 +6,58 @@ const cors = require("cors");
 // Connect Database
 const { connectDB } = require("./config/db");
 
-// Basic API Routes
+// -------------------- Basic API Routes --------------------
 const Testimonials = require("./routes/Testimonials/Testimonials");
 const HomeBanner = require("./routes/HomeBanner/HomeBanner");
 const NewsLetter = require("./routes/Newsletter/Newsletter");
 const ChooseUs = require("./routes/ChooseUs/ChooseUs");
 const Users = require("./routes/User/User");
 const Blogs = require("./routes/Blogs/Blogs");
+const AboutUs = require("./routes/AboutUs/AboutUs");
 
-// Trainers API routes
+// -------------------- Trainers / Jobs Routes --------------------
 const JobApplications = require("./routes/Jobs/JobApplications");
 const Jobs = require("./routes/Jobs/Jobs");
 
-// Gigs API routes
+// -------------------- Gigs Routes --------------------
 const GigBids = require("./routes/Gigs/GigBids");
 const Gigs = require("./routes/Gigs/Gigs");
 
-// Company API routes
+// -------------------- Company Routes --------------------
 const Company = require("./routes/Company/Company");
 
-// Insights API routes
+// -------------------- Insights Routes --------------------
 const Insights = require("./routes/Insights/Insights");
 
-// Events API routes
+// -------------------- Events Routes --------------------
 const EventApplications = require("./routes/Events/EventApplications");
 const Events = require("./routes/Events/Events");
 
-// Courses API routes
+// -------------------- Courses Routes --------------------
 const CourseApplications = require("./routes/Courses/CourseApplications");
 const Courses = require("./routes/Courses/Courses");
 
-// Mentorship API routes
+// -------------------- Mentorship Routes --------------------
 const MentorshipApplications = require("./routes/Mentorship/MentorshipApplications");
 const Mentorship = require("./routes/Mentorship/Mentorship");
 
-// Internship API routes
+// -------------------- Internship Routes --------------------
 const InternshipApplications = require("./routes/Internship/InternshipApplications");
 const Internship = require("./routes/Internship/Internship");
 
-// PDF Upload API route
+// -------------------- PDF Upload Route --------------------
 const PDFUpload = require("./routes/PDFUpload/PDFUpload");
 
-// Insights API routes
-const AboutUs = require("./routes/AboutUs/AboutUs");
-
-// Become Employer API route
+// -------------------- Become Employer / Mentor Routes --------------------
 const EmployerRequest = require("./routes/EmployerRequest/EmployerRequest");
-
-// Become Mentor API route
 const MentorRequest = require("./routes/MentorRequest/MentorRequest");
 
-// Employer API routes
+// -------------------- Employers / Mentors Routes --------------------
 const Employers = require("./routes/Employers/Employers");
-
-// Mentor API routes
 const Mentors = require("./routes/Mentors/Mentors");
 
-// Mentors Email API routes
+// -------------------- Mentor Email / Message Routes --------------------
+const MentorMessages = require("./routes/Messages/MentorMessages");
 const MentorEmails = require("./routes/Emails/MentorEmails");
 
 require("dotenv").config();
@@ -108,9 +103,7 @@ app.post("/jwt", async (req, res) => {
   }
 });
 
-// APP routes
-
-// Basic APP routes
+// -------------------- Basic APP Routes --------------------
 app.use("/Users", Users);
 app.use("/Blogs", Blogs);
 app.use("/AboutUs", AboutUs);
@@ -119,53 +112,50 @@ app.use("/NewsLetter", NewsLetter);
 app.use("/Home-Banner", HomeBanner);
 app.use("/Testimonials", Testimonials);
 
-// Trainers APP routes
+// -------------------- Trainers / Jobs APP Routes --------------------
 app.use("/JobApplications", JobApplications);
 app.use("/Jobs", Jobs);
 
-// Gigs APP routes
+// -------------------- Gigs APP Routes --------------------
 app.use("/GigBids", GigBids);
 app.use("/Gigs", Gigs);
 
-// Company APP routes
+// -------------------- Company APP Routes --------------------
 app.use("/Company", Company);
 
-// Insights APP routes
+// -------------------- Insights APP Routes --------------------
 app.use("/Insights", Insights);
 
-// Events APP routes
+// -------------------- Events APP Routes --------------------
 app.use("/EventApplications", EventApplications);
 app.use("/Events", Events);
 
-// Courses APP routes
+// -------------------- Courses APP Routes --------------------
 app.use("/CourseApplications", CourseApplications);
 app.use("/Courses", Courses);
 
-// Mentorship APP routes
+// -------------------- Mentorship APP Routes --------------------
 app.use("/MentorshipApplications", MentorshipApplications);
 app.use("/Mentorship", Mentorship);
 
-// Internship APP routes
+// -------------------- Internship APP Routes --------------------
 app.use("/InternshipApplications", InternshipApplications);
 app.use("/Internship", Internship);
 
-// PDF Upload APP route
+// -------------------- PDF Upload APP Route --------------------
 app.use("/PDFUpload", PDFUpload);
 
-// Become Employer APP route
+// -------------------- Become Employer / Mentor APP Routes --------------------
 app.use("/EmployerRequest", EmployerRequest);
-
-// Become Mentor APP route
 app.use("/MentorRequest", MentorRequest);
 
-// Employer APP routes
+// -------------------- Employers / Mentors APP Routes --------------------
 app.use("/Employers", Employers);
-
-// Mentor APP routes
 app.use("/Mentors", Mentors);
 
-// Mentor Emails APP routes
+// -------------------- Mentor Emails / Messages APP Routes --------------------
 app.use("/MentorEmails", MentorEmails);
+app.use("/MentorMessages", MentorMessages);
 
 // Root health-check
 app.get("/", (req, res) => {

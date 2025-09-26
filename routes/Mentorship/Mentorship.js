@@ -9,80 +9,87 @@ const MentorshipCollection = client
 
 // GET: Get Mentorship
 router.get("/", async (req, res) => {
-  const { id, postedBy, mentorEmail, mentorshipIds, archived, status } =
-    req.query;
-
-  const query = { $and: [] };
-
-  // Single ID
-  if (id) {
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid id format." });
-    }
-    query.$and.push({ _id: new ObjectId(id) });
-  }
-
-  // Multiple Mentorship IDs
-  if (mentorshipIds) {
-    try {
-      const idsArray = mentorshipIds.split(",").map((id) => {
-        const trimmed = id.trim();
-        if (!ObjectId.isValid(trimmed)) throw new Error();
-        return new ObjectId(trimmed);
-      });
-      query.$and.push({ _id: { $in: idsArray } });
-    } catch (err) {
-      return res.status(400).json({
-        message:
-          "Invalid mentorshipIds format. Must be a comma-separated list of valid IDs.",
-      });
-    }
-  }
-
-  // Posted By or Mentor Email
-  if (postedBy || mentorEmail) {
-    const emailOr = [];
-    if (postedBy) emailOr.push({ postedBy });
-    if (mentorEmail) emailOr.push({ "Mentor.email": mentorEmail });
-    if (emailOr.length > 0) query.$and.push({ $or: emailOr });
-  }
-
-  // Archived filter
-  if (archived !== undefined) {
-    if (archived === "true" || archived === "false") {
-      const isArchived = archived === "true";
-      if (isArchived) {
-        query.$and.push({ archived: true });
-      } else {
-        query.$and.push({
-          $or: [{ archived: false }, { archived: { $exists: false } }],
-        });
-      }
-    } else {
-      return res
-        .status(400)
-        .json({ message: "Invalid archived value. Use true or false." });
-    }
-  }
-
-  // Status filter
-  if (status) {
-    const statuses = status
-      .split(",")
-      .map((s) =>
-        s.trim().toLowerCase() === "onhold" ? "onHold" : s.trim().toLowerCase()
-      );
-    query.$and.push({ status: { $in: statuses } });
-  }
-
-  // If $and is empty, just query everything
-  const finalQuery = query.$and.length > 0 ? { $and: query.$and } : {};
+  const { id, postedBy, mentorEmail, archived, status } = req.query;
 
   try {
-    const results = await MentorshipCollection.find(finalQuery).toArray();
-    res.send(
-      Array.isArray(results) && results.length === 1 ? results[0] : results
-    );
+    let query = {};
+
+    // --- Handle id as single or multiple ---
+    if (id) {
+      try {
+        const idsArray = id.split(",").map((item) => {
+          const trimmed = item.trim();
+          if (!ObjectId.isValid(trimmed)) throw new Error();
+          return new ObjectId(trimmed);
+        });
+
+        if (idsArray.length === 1) {
+          query._id = idsArray[0]; // single
+        } else {
+          query._id = { $in: idsArray }; // multiple
+        }
+      } catch {
+        return res.status(400).json({
+          message:
+            "Invalid id format. Must be a valid ObjectID or a comma-separated list of ObjectIDs.",
+        });
+      }
+    }
+
+    // --- Extra filters (only when id not used) ---
+    else {
+      query.$and = [];
+
+      // Posted By or Mentor Email
+      if (postedBy || mentorEmail) {
+        const emailOr = [];
+        if (postedBy) emailOr.push({ postedBy });
+        if (mentorEmail) emailOr.push({ "Mentor.email": mentorEmail });
+        if (emailOr.length > 0) query.$and.push({ $or: emailOr });
+      }
+
+      // Archived filter
+      if (archived !== undefined) {
+        if (archived === "true" || archived === "false") {
+          const isArchived = archived === "true";
+          if (isArchived) {
+            query.$and.push({ archived: true });
+          } else {
+            query.$and.push({
+              $or: [{ archived: false }, { archived: { $exists: false } }],
+            });
+          }
+        } else {
+          return res
+            .status(400)
+            .json({ message: "Invalid archived value. Use true or false." });
+        }
+      }
+
+      // Status filter
+      if (status) {
+        const statuses = status
+          .split(",")
+          .map((s) =>
+            s.trim().toLowerCase() === "onhold"
+              ? "onHold"
+              : s.trim().toLowerCase()
+          );
+        query.$and.push({ status: { $in: statuses } });
+      }
+
+      // If no conditions, remove $and
+      query = query.$and.length > 0 ? { $and: query.$and } : {};
+    }
+
+    // --- Query DB ---
+    const results = await MentorshipCollection.find(query).toArray();
+
+    if (results.length === 1 && id) {
+      return res.send(results[0]); // return single object if one ID
+    }
+
+    res.send(results);
   } catch (error) {
     console.error("Error fetching mentorship:", error);
     res.status(500).send("Server error.");

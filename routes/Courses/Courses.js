@@ -7,41 +7,35 @@ const CoursesCollection = client.db("Master-Job-Shop").collection("Courses");
 
 // Get Courses
 router.get("/", async (req, res) => {
-  const { id, postedBy, email, courseIds, mentorEmail, status, archived } =
-    req.query;
+  const { id, postedBy, email, mentorEmail, status, archived } = req.query;
 
   try {
     let query = {};
 
-    // Query by single ID
+    // --- Handle id as single or multiple ---
     if (id) {
-      if (!ObjectId.isValid(id)) {
-        return res.status(400).send({ message: "Invalid ID format." });
-      }
-      query._id = new ObjectId(id);
-    }
-
-    // Query by multiple course IDs
-    else if (courseIds) {
       try {
-        const idsArray = courseIds.split(",").map((id) => {
-          const trimmed = id.trim();
+        const idsArray = id.split(",").map((item) => {
+          const trimmed = item.trim();
           if (!ObjectId.isValid(trimmed)) throw new Error();
           return new ObjectId(trimmed);
         });
 
-        query._id = { $in: idsArray };
+        if (idsArray.length === 1) {
+          query._id = idsArray[0]; // single ID
+        } else {
+          query._id = { $in: idsArray }; // multiple IDs
+        }
       } catch {
         return res.status(400).send({
           message:
-            "Invalid courseIds format. Must be a comma-separated list of valid MongoDB ObjectIDs.",
+            "Invalid id format. Must be a valid ObjectID or a comma-separated list of ObjectIDs.",
         });
       }
     }
 
-    // Additional filters (only when courseIds/id are not used)
+    // --- Additional filters (only when id is not used) ---
     else {
-      // Initialize $and array for combining multiple conditions
       query.$and = [];
 
       // Posted By or Mentor Email
@@ -87,14 +81,15 @@ router.get("/", async (req, res) => {
         }
       }
 
-      // If $and is empty, just query everything
+      // If no conditions, remove $and
       query = query.$and.length > 0 ? { $and: query.$and } : {};
     }
 
+    // --- Query DB ---
     const results = await CoursesCollection.find(query).toArray();
 
-    if (results.length === 1 && (id || courseIds)) {
-      return res.send(results[0]); // return single object when explicitly fetching single(s)
+    if (results.length === 1 && id) {
+      return res.send(results[0]); // return single object if fetching a single ID
     }
 
     return res.send(results);

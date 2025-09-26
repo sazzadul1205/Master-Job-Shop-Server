@@ -7,10 +7,25 @@ const MentorEmailCollection = client
   .db("Master-Job-Shop")
   .collection("Mentor_Emails");
 
-// GET all mentor emails
+// GET all Mentor Emails
 router.get("/", async (req, res) => {
   try {
-    const emails = await MentorEmailCollection.find({}).toArray();
+    const { type, email, recipient_email } = req.query;
+    const query = {};
+
+    if (type) query.type = type;
+
+    if (email) {
+      query.email = { $regex: new RegExp(`^${email}$`, "i") };
+    }
+
+    if (recipient_email) {
+      query["recipients.to_email"] = {
+        $regex: new RegExp(`^${recipient_email}$`, "i"),
+      };
+    }
+
+    const emails = await MentorEmailCollection.find(query).toArray();
     res.status(200).json(emails);
   } catch (err) {
     console.error(err);

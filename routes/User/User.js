@@ -113,6 +113,42 @@ router.get("/Role", async (req, res) => {
   }
 });
 
+router.get("/ProfilesByContacts", async (req, res) => {
+  try {
+    const { emails, phones } = req.query;
+
+    // Convert comma-separated string to arrays
+    const emailArray = emails ? emails.split(",") : [];
+    const phoneArray = phones ? phones.split(",") : [];
+
+    if (emailArray.length === 0 && phoneArray.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Provide at least one email or phone number." });
+    }
+
+    // Build query
+    const query = { $or: [] };
+    if (emailArray.length) query.$or.push({ email: { $in: emailArray } });
+    if (phoneArray.length) query.$or.push({ phone: { $in: phoneArray } });
+
+    // Fetch users
+    const users = await UsersCollection.find(query).toArray();
+
+    // Map to required fields
+    const results = users.map((user) => ({
+      email: user.email,
+      phone: user.phone,
+      profileImage: user.profileImage || null,
+    }));
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("GET /users/profiles-by-contacts error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // Add Document to User's documents array
 router.put("/AddDocument/:id", async (req, res) => {
   const id = req.params.id;

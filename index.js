@@ -60,6 +60,9 @@ const Mentors = require("./routes/Mentors/Mentors");
 const MentorMessages = require("./routes/Messages/MentorMessages");
 const MentorEmails = require("./routes/Emails/MentorEmails");
 
+// -------------------- Notifications Routes --------------------
+const Notifications = require("./routes/Notifications/Notifications");
+
 require("dotenv").config();
 const app = express();
 
@@ -156,6 +159,9 @@ app.use("/Mentors", Mentors);
 // -------------------- Mentor Emails / Messages APP Routes --------------------
 app.use("/MentorEmails", MentorEmails);
 app.use("/MentorMessages", MentorMessages);
+
+// -------------------- Notification APP Routes --------------------
+app.use("/Notifications", Notifications);
 
 // Root health-check
 app.get("/", (req, res) => {

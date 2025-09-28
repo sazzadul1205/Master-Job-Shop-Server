@@ -94,12 +94,19 @@ router.post("/", async (req, res) => {
   try {
     const application = req.body;
 
+    // Basic validation
     if (!application || !application.mentorshipId || !application.email) {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
+    // Insert into MongoDB
     const result = await MentorshipCollection.insertOne(application);
-    res.status(201).json({ insertedId: result.insertedId });
+
+    // Return the inserted ID
+    res.status(201).json({
+      message: "Application submitted successfully",
+      insertedId: result.insertedId, 
+    });
   } catch (error) {
     console.error("POST /MentorshipApplications error:", error);
     res.status(500).json({ message: "Server error submitting application." });

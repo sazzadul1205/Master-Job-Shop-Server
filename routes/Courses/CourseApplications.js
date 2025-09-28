@@ -95,12 +95,19 @@ router.post("/", async (req, res) => {
   try {
     const application = req.body;
 
+    // Basic validation
     if (!application || !application.courseId || !application.email) {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
+    // Insert into MongoDB
     const result = await CourseCollection.insertOne(application);
-    res.status(201).json({ insertedId: result.insertedId });
+
+    // Return the inserted ID
+    res.status(201).json({
+      message: "Application submitted successfully",
+      insertedId: result.insertedId,
+    });
   } catch (error) {
     console.error("POST /CourseApplications error:", error);
     res.status(500).json({ message: "Server error submitting application." });

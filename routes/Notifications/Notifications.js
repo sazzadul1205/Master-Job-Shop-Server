@@ -7,10 +7,18 @@ const NotificationsCollection = client
   .db("Master-Job-Shop")
   .collection("Notifications");
 
-// Get all notifications
+// Get all notifications (with optional filters)
 router.get("/", async (req, res) => {
   try {
-    const notifications = await NotificationsCollection.find({}).toArray();
+    const { userId, type, read } = req.query;
+
+    // Build query object dynamically
+    const query = {};
+    if (userId) query.userId = userId;
+    if (type) query.type = type;
+    if (read !== undefined) query.read = read === "true"; // convert string to boolean
+
+    const notifications = await NotificationsCollection.find(query).toArray();
     res.json(notifications);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -33,15 +41,25 @@ router.get("/:id", async (req, res) => {
 // Create a new notification with required fields validation
 router.post("/", async (req, res) => {
   try {
-    const { title, message, userId, type, referenceId } = req.body;
+    const {
+      title,
+      message,
+      userEmail,
+      mentorId,
+      type,
+      AppliedToId,
+      applicationId,
+    } = req.body;
 
     // Check for missing fields
     const missingFields = [];
     if (!title) missingFields.push("title");
     if (!message) missingFields.push("message");
-    if (!userId) missingFields.push("userId");
+    if (!userEmail) missingFields.push("userEmail");
+    if (!mentorId) missingFields.push("mentorId");
     if (!type) missingFields.push("type");
-    if (!referenceId) missingFields.push("referenceId");
+    if (!AppliedToId) missingFields.push("AppliedToId");
+    if (!applicationId) missingFields.push("applicationId");
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -49,12 +67,15 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // Build notification object
     const notificationPayload = {
       title,
       message,
-      userId,
+      userEmail,
+      mentorId,
       type,
-      referenceId,
+      AppliedToId,
+      applicationId,
       createdAt: new Date().toISOString(),
       read: false,
     };

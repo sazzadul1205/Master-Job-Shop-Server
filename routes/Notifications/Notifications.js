@@ -10,17 +10,22 @@ const NotificationsCollection = client
 // Get all notifications (with optional filters)
 router.get("/", async (req, res) => {
   try {
-    const { userId, type, read } = req.query;
+    const { userEmail, mentorId, type, read, AppliedToId, applicationId } =
+      req.query;
 
     // Build query object dynamically
     const query = {};
-    if (userId) query.userId = userId;
+    if (userEmail) query.userEmail = userEmail;
+    if (mentorId) query.mentorId = mentorId;
     if (type) query.type = type;
+    if (AppliedToId) query.AppliedToId = AppliedToId;
+    if (applicationId) query.applicationId = applicationId;
     if (read !== undefined) query.read = read === "true"; // convert string to boolean
 
     const notifications = await NotificationsCollection.find(query).toArray();
     res.json(notifications);
   } catch (err) {
+    console.error("GET /Notifications error:", err);
     res.status(500).json({ message: err.message });
   }
 });

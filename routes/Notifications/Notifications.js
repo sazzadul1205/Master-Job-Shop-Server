@@ -105,6 +105,34 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+// Mark notification as read
+router.patch("/Read/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: "Notification ID is required" });
+    }
+
+    const result = await NotificationsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { read: true } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    res.json({
+      message: "Notification marked as read",
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (err) {
+    console.error("PATCH /Notifications/read/:id error:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Delete a notification by ID
 router.delete("/:id", async (req, res) => {
   try {

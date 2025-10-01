@@ -165,6 +165,52 @@ router.get("/Title", async (req, res) => {
   }
 });
 
+// GET: Courses Status by Mentor Email
+router.get("/Status", async (req, res) => {
+  const { mentorEmail } = req.query;
+
+  if (!mentorEmail) {
+    return res.status(400).json({ message: "mentorEmail is required." });
+  }
+
+  try {
+    const results = await CoursesCollection.aggregate([
+      // Filter courses by mentor email
+      { $match: { "Mentor.email": mentorEmail } },
+
+      // Group by postedAt date (convert string → Date safely)
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%d-%b-%Y",
+              date: { $toDate: "$postedAt" }, // ensure string → Date
+            },
+          },
+          count: { $sum: 1 },
+        },
+      },
+
+      // Clean projection
+      {
+        $project: {
+          _id: 0,
+          Date: "$_id",
+          Count: "$count",
+        },
+      },
+
+      // Sort ascending by Date
+      { $sort: { Date: 1 } },
+    ]).toArray();
+
+    return res.json(results);
+  } catch (error) {
+    console.error("Error fetching courses status:", error);
+    res.status(500).json({ message: "Error fetching courses status", error });
+  }
+});
+
 // Create a new Course
 router.post("/", async (req, res) => {
   const courseData = req.body;

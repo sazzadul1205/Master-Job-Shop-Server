@@ -160,6 +160,51 @@ router.get("/Title", async (req, res) => {
   }
 });
 
+// GET: Mentorship Status by Mentor Email
+router.get("/Status", async (req, res) => {
+  const { mentorEmail } = req.query;
+
+  if (!mentorEmail) {
+    return res.status(400).json({ message: "mentorEmail is required." });
+  }
+
+  try {
+    const results = await MentorshipCollection.aggregate([
+      // Match mentor email
+      { $match: { "Mentor.email": mentorEmail } },
+
+      // Group by postedAt date (converted from string to Date)
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%d-%b-%Y",
+              date: { $toDate: "$postedAt" }, // Convert string to Date
+            },
+          },
+          count: { $sum: 1 },
+        },
+      },
+
+      // Clean projection
+      {
+        $project: {
+          _id: 0,
+          Date: "$_id",
+          Count: "$count",
+        },
+      },
+
+      { $sort: { Date: 1 } },
+    ]).toArray();
+
+    res.json(results);
+  } catch (error) {
+    console.error("Error fetching mentorship status:", error);
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
 // POST: Post Mentorship
 router.post("/", async (req, res) => {
   try {

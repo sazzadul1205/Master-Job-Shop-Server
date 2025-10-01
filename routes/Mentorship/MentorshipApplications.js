@@ -89,6 +89,101 @@ router.get("/ByMentorship", async (req, res) => {
   }
 });
 
+// GET: Mentorship Applications Status
+router.get("/Status", async (req, res) => {
+  const { ids } = req.query;
+
+  // Validate IDs
+  if (!ids) return res.status(400).json({ message: "IDs are required." });
+
+  // --- Handle array string or comma-separated string ---
+  let mentorshipIdsArray = [];
+
+  try {
+    // --- Handle array string or comma-separated string ---
+    if (ids.startsWith("[") && ids.endsWith("]")) {
+      mentorshipIdsArray = JSON.parse(ids.replace(/'/g, '"')); // replace single quotes
+    } else {
+      mentorshipIdsArray = ids.split(",").map((id) => id.trim());
+    }
+
+    // Validate IDs
+    mentorshipIdsArray = mentorshipIdsArray.map((id) => {
+      if (!id) throw new Error(`Invalid ID: ${id}`);
+      return id;
+    });
+
+    // Aggregation pipeline
+    const results = await MentorshipCollection.aggregate([
+      { $match: { mentorshipId: { $in: mentorshipIdsArray } } },
+      {
+        $group: {
+          _id: {
+            date: {
+              $dateToString: {
+                format: "%d-%b-%Y",
+                date: { $toDate: "$appliedAt" },
+              },
+            },
+            mentorshipId: "$mentorshipId",
+          },
+          total: { $sum: 1 },
+          accepted: {
+            $sum: {
+              $cond: [{ $in: [{ $toLower: "$status" }, ["accepted"]] }, 1, 0],
+            },
+          },
+          rejected: {
+            $sum: {
+              $cond: [{ $in: [{ $toLower: "$status" }, ["rejected"]] }, 1, 0],
+            },
+          },
+          pending: {
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$status", null] },
+                    { $eq: ["$status", ""] },
+                    {
+                      $and: [
+                        { $ne: [{ $toLower: "$status" }, "accepted"] },
+                        { $ne: [{ $toLower: "$status" }, "rejected"] },
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+      { $sort: { "_id.date": 1 } },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id.date",
+          mentorshipId: "$_id.mentorshipId",
+          count: "$total",
+          detailed: {
+            accepted: "$accepted",
+            rejected: "$rejected",
+            pending: "$pending",
+          },
+        },
+      },
+    ]).toArray();
+
+    // Send response
+    res.json(results);
+  } catch (error) {
+    console.error("Error fetching mentorship application status:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 // POST: Submit new application
 router.post("/", async (req, res) => {
   try {
@@ -105,7 +200,7 @@ router.post("/", async (req, res) => {
     // Return the inserted ID
     res.status(201).json({
       message: "Application submitted successfully",
-      insertedId: result.insertedId, 
+      insertedId: result.insertedId,
     });
   } catch (error) {
     console.error("POST /MentorshipApplications error:", error);

@@ -33,6 +33,77 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET: Mentor Messages Status by sent date (total count only)
+router.get("/Status", async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ message: "email is required" });
+    }
+
+    // Find all mentor message documents matching the email
+    const messages = await MentorMessagesCollection.find({
+      email: { $regex: new RegExp(`^${email}$`, "i") },
+    }).toArray();
+
+    // Flatten all recipients into a single array with the sentAt date
+    const allRecipients = [];
+    messages.forEach((doc) => {
+      if (doc.recipients && Array.isArray(doc.recipients)) {
+        doc.recipients.forEach((recipient) => {
+          allRecipients.push({
+            to_email: recipient.to_email,
+            sentAt: doc.sentAt,
+          });
+        });
+      }
+    });
+
+    // Helper function to format date as DD-MMM-YYYY
+    const formatDate = (isoString) => {
+      const dateObj = new Date(isoString);
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const month = monthNames[dateObj.getMonth()];
+      const year = dateObj.getFullYear();
+      return `${day}-${month}-${year}`;
+    };
+
+    // Group by formatted date
+    const grouped = {};
+    allRecipients.forEach((item) => {
+      const date = formatDate(item.sentAt);
+      grouped[date] = (grouped[date] || 0) + 1;
+    });
+
+    const result = Object.keys(grouped)
+      .sort((a, b) => new Date(a) - new Date(b))
+      .map((date) => ({
+        date,
+        count: grouped[date],
+      }));
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching mentor Messages application status:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 // GET message by ID
 router.get("/:id", async (req, res) => {
   const { id } = req.params;

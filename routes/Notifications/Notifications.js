@@ -30,6 +30,44 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get notifications grouped by day for a specific mentorEmail
+router.get("/Status", async (req, res) => {
+  try {
+    // Extract mentorEmail from query parameters
+    const { mentorEmail } = req.query;
+
+    // Validate mentorEmail
+    if (!mentorEmail) {
+      return res.status(400).json({ message: "mentorEmail is required" });
+    }
+
+    // Fetch notifications for the given mentorEmail
+    const notifications = await NotificationsCollection.find({
+      mentorEmail,
+    }).toArray();
+
+    // Group notifications by day
+    const grouped = {};
+
+    // Iterate through notifications and group by date
+    notifications.forEach((notify) => {
+      const date = new Date(notify.createdAt).toISOString().split("T")[0]; // YYYY-MM-DD
+      grouped[date] = (grouped[date] || 0) + 1;
+    });
+
+    // Convert grouped object to an array of { date, count } objects
+    const result = Object.keys(grouped)
+      .sort()
+      .map((date) => ({ date, count: grouped[date] }));
+
+    // Send the grouped result
+    res.json(result);
+  } catch (err) {
+    console.error("Error fetching Notifications status:", error);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get a single notification by ID
 router.get("/:id", async (req, res) => {
   try {

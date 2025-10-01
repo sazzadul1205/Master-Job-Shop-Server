@@ -90,6 +90,101 @@ router.get("/ByCourse", async (req, res) => {
   }
 });
 
+// GET: Course Applications Status by courseId
+router.get("/Status", async (req, res) => {
+  const { ids } = req.query;
+
+  // Validate IDs
+  if (!ids) return res.status(400).json({ message: "IDs are required." });
+
+  // --- Handle array string or comma-separated string ---
+  let courseIdsArray = [];
+
+  try {
+    // --- Handle array string or comma-separated string ---
+    if (ids.startsWith("[") && ids.endsWith("]")) {
+      courseIdsArray = JSON.parse(ids.replace(/'/g, '"')); // replace single quotes
+    } else {
+      courseIdsArray = ids.split(",").map((id) => id.trim());
+    }
+
+    // Validate IDs
+    courseIdsArray = courseIdsArray.map((id) => {
+      if (!ObjectId.isValid(id)) throw new Error(`Invalid ID: ${id}`);
+      return id; // we keep as string because courseId is string
+    });
+
+    // Aggregation pipeline
+    const results = await CourseCollection.aggregate([
+      { $match: { courseId: { $in: courseIdsArray } } },
+      {
+        $group: {
+          _id: {
+            date: {
+              $dateToString: {
+                format: "%d-%b-%Y",
+                date: { $toDate: "$appliedAt" },
+              },
+            },
+            courseId: "$courseId",
+          },
+          total: { $sum: 1 },
+          accepted: {
+            $sum: {
+              $cond: [{ $in: [{ $toLower: "$status" }, ["accepted"]] }, 1, 0],
+            },
+          },
+          rejected: {
+            $sum: {
+              $cond: [{ $in: [{ $toLower: "$status" }, ["rejected"]] }, 1, 0],
+            },
+          },
+          pending: {
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$status", null] },
+                    { $eq: ["$status", ""] },
+                    {
+                      $and: [
+                        { $ne: [{ $toLower: "$status" }, "accepted"] },
+                        { $ne: [{ $toLower: "$status" }, "rejected"] },
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+      { $sort: { "_id.date": 1 } },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id.date",
+          courseId: "$_id.courseId",
+          count: "$total",
+          detailed: {
+            accepted: "$accepted",
+            rejected: "$rejected",
+            pending: "$pending",
+          },
+        },
+      },
+    ]).toArray();
+
+    // Send response
+    res.json(results);
+  } catch (error) {
+    console.error("Error fetching course application status:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 // POST: Submit new application
 router.post("/", async (req, res) => {
   try {

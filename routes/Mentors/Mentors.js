@@ -90,6 +90,45 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+// PATCH - Deactivate mentor
+router.patch("/Deactivate", async (req, res) => {
+  try {
+    const { email, deactivate, deactivateUntil } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Update fields
+    const updateDoc = {
+      $set: {
+        deactivate: !!deactivate,
+        deactivateUntil: deactivateUntil || null,
+        updatedAt: new Date(),
+      },
+    };
+
+    const result = await MentorsCollection.updateOne(
+      { email: normalizedEmail },
+      updateDoc
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Mentor not found." });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Mentor deactivated successfully." });
+  } catch (error) {
+    console.error("Error deactivating mentor:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // DELETE - Delete a mentor by ID
 router.delete("/:id", async (req, res) => {
   try {

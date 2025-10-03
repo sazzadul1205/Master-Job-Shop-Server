@@ -66,6 +66,9 @@ const Notifications = require("./routes/Notifications/Notifications");
 // -------------------- Login History Routes --------------------
 const LoginHistory = require("./routes/LoginHistory/LoginHistory");
 
+// -------------------- Mentor Auto Reactivation --------------------
+const MentorAutoReActivateAccount = require("./routes/Mentors/MentorAutoReActivateAccount");
+
 require("dotenv").config();
 const app = express();
 
@@ -168,6 +171,9 @@ app.use("/Notifications", Notifications);
 
 // -------------------- Login History APP Routes --------------------
 app.use("/LoginHistory", LoginHistory);
+
+// -------------------- Mentor Auto Reactivation APP Routes --------------------
+app.use("/MentorAutoReActivateAccount", MentorAutoReActivateAccount);
 
 // Root health-check
 app.get("/", (req, res) => {

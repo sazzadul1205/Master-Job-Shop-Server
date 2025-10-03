@@ -8,13 +8,29 @@ const LoginHistoryCollection = client
   .db("Master-Job-Shop")
   .collection("Login_History");
 
-// GET - Fetch all login records
+// GET - Fetch recent login history by email/uid (just return, no delete)
 router.get("/", async (req, res) => {
   try {
-    const records = await LoginHistoryCollection.find({}).toArray();
-    res.status(200).json(records);
+    const { email, uid } = req.query;
+
+    if (!email && !uid) {
+      return res.status(400).json({ error: "Email or UID required" });
+    }
+
+    // Build query filter
+    const filter = {};
+    if (email) filter.email = email;
+    if (uid) filter.uid = uid;
+
+    // Fetch recent 10 logins (newest first)
+    const records = await LoginHistoryCollection.find(filter)
+      .sort({ loginTime: -1 })
+      .limit(10)
+      .toArray();
+
+    res.json(records);
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching login history:", err);
     res.status(500).json({ error: "Failed to fetch login history" });
   }
 });
@@ -88,6 +104,43 @@ router.put("/:id", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update login record" });
+  }
+});
+
+// DELETE - Cleanup old login records (keep 20, delete the rest)
+router.delete("/cleanup", async (req, res) => {
+  try {
+    const { email, uid } = req.query;
+
+    if (!email && !uid) {
+      return res.status(400).json({ error: "Email or UID required" });
+    }
+
+    const filter = {};
+    if (email) filter.email = email;
+    if (uid) filter.uid = uid;
+
+    // Fetch all logins sorted by newest first
+    const allRecords = await LoginHistoryCollection.find(filter)
+      .sort({ loginTime: -1 })
+      .toArray();
+
+    const keepRecords = allRecords.slice(0, 20);
+    const deleteRecords = allRecords.slice(20);
+
+    if (deleteRecords.length > 0) {
+      const deleteIds = deleteRecords.map((rec) => rec._id);
+      await LoginHistoryCollection.deleteMany({ _id: { $in: deleteIds } });
+    }
+
+    res.json({
+      message: "Cleanup done",
+      kept: keepRecords.length,
+      deleted: deleteRecords.length,
+    });
+  } catch (err) {
+    console.error("Error cleaning up login history:", err);
+    res.status(500).json({ error: "Failed to cleanup login history" });
   }
 });
 

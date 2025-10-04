@@ -69,7 +69,9 @@ const LoginHistory = require("./routes/LoginHistory/LoginHistory");
 // -------------------- Mentor Auto Reactivation --------------------
 const MentorAutoReActivateAccount = require("./routes/Mentors/MentorAutoReActivateAccount");
 
-// -------------------- Mentor Auto Reactivation --------------------
+// -------------------- Mentor Support --------------------
+const ImprovementSuggestions = require("./routes/ImprovementSuggestions/ImprovementSuggestions");
+const BugReport = require("./routes/BugReport/BugReport");
 const Tickets = require("./routes/Tickets/Tickets");
 
 require("dotenv").config();
@@ -178,7 +180,9 @@ app.use("/LoginHistory", LoginHistory);
 // -------------------- Mentor Auto Reactivation APP Routes --------------------
 app.use("/MentorAutoReActivateAccount", MentorAutoReActivateAccount);
 
-// -------------------- Tickets APP Routes --------------------
+// -------------------- Tickets / Bug Report APP Routes --------------------
+app.use("/ImprovementSuggestions", ImprovementSuggestions);
+app.use("/BugReport", BugReport);
 app.use("/Tickets", Tickets);
 
 // Root health-check

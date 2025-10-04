@@ -64,21 +64,14 @@ router.get("/:id", async (req, res) => {
 // POST - Create a new Bug Report
 router.post("/", async (req, res) => {
   try {
-    const {
-      userEmail,
-      errorType,
-      category,
-      errorDescription,
-      from,
-      image,
-      date,
-    } = req.body;
+    const { userEmail, errorType, errorDescription, from, image, date } =
+      req.body;
 
     // Validate required fields
-    if (!userEmail || !errorType || !category || !errorDescription) {
+    if (!userEmail || !errorType || !errorDescription) {
       return res.status(400).json({
         message:
-          "Missing required fields: userEmail, errorType, category, or errorDescription",
+          "Missing required fields: userEmail, errorType, or errorDescription",
       });
     }
 
@@ -86,13 +79,14 @@ router.post("/", async (req, res) => {
     const ticketData = {
       userEmail,
       errorType,
-      category,
       errorDescription,
       from: from || "Mentor",
       image: image || null,
+      type: "Bug Report", // categorize type
       date: date ? new Date(date) : new Date(),
       status: "Open",
       createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     // Insert into DB

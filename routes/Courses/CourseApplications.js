@@ -59,33 +59,40 @@ router.get("/Exists", async (req, res) => {
 // GET: Fetch applications grouped by courseIds
 router.get("/ByCourse", async (req, res) => {
   try {
+    // Get query parameters
     let { courseId, status } = req.query;
+
+    // If courseId is missing, return empty grouped object instead of 400
     if (!courseId) {
-      return res.status(400).json({ error: "courseId is required" });
+      return res.json({});
     }
 
+    // If courseId is a string, convert it to an array
     const ids = courseId.split(",");
 
-    // Build query
+    // Validate IDs
     const query = { courseId: { $in: ids } };
     if (status && status !== "all") {
-      query.status = status; // keep case as stored in DB
+      query.status = status;
     }
 
-    // Fetch from Mongo (sort by appliedAt desc)
+    // Fetch from Mongo
     const data = await CourseCollection.find(query)
       .sort({ appliedAt: -1 })
       .toArray();
 
     // Group results
     const grouped = {};
+
+    // Iterate through applications and group by courseId
     ids.forEach((id) => {
       grouped[id] = data.filter((app) => app.courseId === id);
     });
 
+    // Send the grouped result
     res.json(grouped);
   } catch (err) {
-    console.error("ByCourse error:", err);
+    console.error("By Course error:", err);
     res.status(500).json({ error: "Server error in ByCourse" });
   }
 });
@@ -244,6 +251,39 @@ router.put("/Status/:id", async (req, res) => {
   } catch (error) {
     console.error("PUT /MentorshipApplications/update-status error:", error);
     res.status(500).json({ message: "Server error updating status." });
+  }
+});
+
+// DELETE: Bulk delete mentorship applications by IDs
+router.delete("/BulkDelete", async (req, res) => {
+  try {
+    const { ids } = req.body; // Expecting { ids: ["id1", "id2", ...] }
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "No IDs provided." });
+    }
+
+    // Validate IDs
+    const objectIds = [];
+    for (const id of ids) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: `Invalid ID: ${id}` });
+      }
+      objectIds.push(new ObjectId(id));
+    }
+
+    // Perform actual bulk deletion
+    const deleteResult = await CourseCollection.deleteMany({
+      _id: { $in: objectIds },
+    });
+
+    res.status(200).json({
+      message: `Deleted ${deleteResult.deletedCount} Course application(s).`,
+      deletedCount: deleteResult.deletedCount,
+    });
+  } catch (error) {
+    console.error("Bulk delete error:", error);
+    res.status(500).json({ message: "Server error during bulk delete." });
   }
 });
 

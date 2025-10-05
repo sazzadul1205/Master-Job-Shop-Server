@@ -94,7 +94,7 @@ router.get("/ByMentorship", async (req, res) => {
     // Send the grouped result
     res.json(grouped);
   } catch (err) {
-    console.error("ByMentorship error:", err);
+    console.error("By Mentorship error:", err);
     res.status(500).json({ error: "Server error in ByMentorship" });
   }
 });
@@ -280,7 +280,7 @@ router.delete("/BulkDelete", async (req, res) => {
     });
 
     res.status(200).json({
-      message: `Deleted ${deleteResult.deletedCount} mentorship application(s).`,
+      message: `Deleted ${deleteResult.deletedCount} Mentorship application(s).`,
       deletedCount: deleteResult.deletedCount,
     });
   } catch (error) {

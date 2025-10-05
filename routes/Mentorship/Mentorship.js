@@ -412,7 +412,7 @@ router.delete("/BulkDelete", async (req, res) => {
         .json({ message: `Invalid ID(s): ${invalidIds.join(", ")}` });
     }
 
-    // Delete mentorships
+    // Delete mentorship
     const deleteResult = await MentorshipCollection.deleteMany({
       _id: { $in: objectIds },
     });

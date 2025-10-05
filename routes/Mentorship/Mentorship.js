@@ -205,6 +205,30 @@ router.get("/Status", async (req, res) => {
   }
 });
 
+// GET: Fetch single mentorship by ID
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid mentorship ID." });
+    }
+
+    const mentorship = await MentorshipCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!mentorship) {
+      return res.status(404).json({ message: "Mentorship not found." });
+    }
+
+    res.status(200).json(mentorship);
+  } catch (error) {
+    console.error("GET /Mentorship/:id error:", error);
+    res.status(500).json({ message: "Server error fetching mentorship." });
+  }
+});
+
 // POST: Post Mentorship
 router.post("/", async (req, res) => {
   try {

@@ -246,6 +246,39 @@ router.put("/Status/:id", async (req, res) => {
   }
 });
 
+// DELETE: Bulk delete mentorship applications by IDs
+router.delete("/BulkDelete", async (req, res) => {
+  try {
+    const { ids } = req.body; // Expecting { ids: ["id1", "id2", ...] }
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "No IDs provided." });
+    }
+
+    // Validate IDs
+    const objectIds = [];
+    for (const id of ids) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: `Invalid ID: ${id}` });
+      }
+      objectIds.push(new ObjectId(id));
+    }
+
+    // Perform actual bulk deletion
+    const deleteResult = await MentorshipCollection.deleteMany({
+      _id: { $in: objectIds },
+    });
+
+    res.status(200).json({
+      message: `Deleted ${deleteResult.deletedCount} mentorship application(s).`,
+      deletedCount: deleteResult.deletedCount,
+    });
+  } catch (error) {
+    console.error("Bulk delete error:", error);
+    res.status(500).json({ message: "Server error during bulk delete." });
+  }
+});
+
 // DELETE: Remove mentorship application by ID
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;

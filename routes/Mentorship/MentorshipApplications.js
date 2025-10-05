@@ -61,27 +61,37 @@ router.get("/Exists", async (req, res) => {
 // GET: Fetch applications grouped by mentorshipIds
 router.get("/ByMentorship", async (req, res) => {
   try {
+    // Get query parameters
     let { mentorshipId, status } = req.query;
+
+    // If mentorshipId is missing, return empty grouped object instead of 400
     if (!mentorshipId) {
-      return res.status(400).json({ error: "mentorshipId is required" });
+      return res.json({});
     }
 
+    // If mentorshipId is a string, convert it to an array
     const ids = mentorshipId.split(",");
 
+    // Validate IDs
     const query = { mentorshipId: { $in: ids } };
     if (status && status !== "all") {
       query.status = status;
     }
 
+    // Fetch from Mongo
     const data = await MentorshipCollection.find(query)
       .sort({ appliedAt: -1 })
       .toArray();
 
+    // Group results
     const grouped = {};
+
+    // Iterate through applications and group by mentorshipId
     ids.forEach((id) => {
       grouped[id] = data.filter((app) => app.mentorshipId === id);
     });
 
+    // Send the grouped result
     res.json(grouped);
   } catch (err) {
     console.error("ByMentorship error:", err);

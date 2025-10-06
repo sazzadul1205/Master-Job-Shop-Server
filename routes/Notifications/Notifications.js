@@ -7,6 +7,7 @@ const NotificationsCollection = client
   .db("Master-Job-Shop")
   .collection("Notifications");
 
+// GET - Fetch all notifications
 router.get("/", async (req, res) => {
   try {
     const { userEmail, mentorId, type, read, AppliedToId, applicationId } =
@@ -166,6 +167,51 @@ router.patch("/Read/:id", async (req, res) => {
   } catch (err) {
     console.error("PATCH /Notifications/read/:id error:", err);
     res.status(500).json({ message: err.message });
+  }
+});
+
+// DELETE: Bulk Delete Notification by IDs
+router.delete("/BulkDelete", async (req, res) => {
+  try {
+    const { ids } = req.body; // Expecting { ids: ["id1", "id2", ...] }
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "No IDs provided." });
+    }
+
+    // Validate IDs
+    const objectIds = [];
+    const invalidIds = [];
+
+    ids.forEach((id) => {
+      if (!ObjectId.isValid(id)) {
+        invalidIds.push(id);
+      } else {
+        objectIds.push(new ObjectId(id));
+      }
+    });
+
+    if (invalidIds.length > 0) {
+      return res
+        .status(400)
+        .json({ message: `Invalid ID(s): ${invalidIds.join(", ")}` });
+    }
+
+    // Delete Notifications
+    const deleteResult = await NotificationsCollection.deleteMany({
+      _id: { $in: objectIds },
+    });
+
+    res.status(200).json({
+      message: `Successfully deleted ${deleteResult.deletedCount} Notification(s).`,
+      deletedCount: deleteResult.deletedCount,
+      deletedIds: ids,
+    });
+  } catch (error) {
+    console.error("Bulk delete Notification error:", error);
+    res
+      .status(500)
+      .json({ message: "Server error during bulk delete of Notification's." });
   }
 });
 

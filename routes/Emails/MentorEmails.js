@@ -141,6 +141,51 @@ router.post("/", async (req, res) => {
   }
 });
 
+// DELETE: Bulk Delete Email by IDs
+router.delete("/BulkDelete", async (req, res) => {
+  try {
+    const { ids } = req.body; // Expecting { ids: ["id1", "id2", ...] }
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "No IDs provided." });
+    }
+
+    // Validate IDs
+    const objectIds = [];
+    const invalidIds = [];
+
+    ids.forEach((id) => {
+      if (!ObjectId.isValid(id)) {
+        invalidIds.push(id);
+      } else {
+        objectIds.push(new ObjectId(id));
+      }
+    });
+
+    if (invalidIds.length > 0) {
+      return res
+        .status(400)
+        .json({ message: `Invalid ID(s): ${invalidIds.join(", ")}` });
+    }
+
+    // Delete Emails
+    const deleteResult = await MentorEmailCollection.deleteMany({
+      _id: { $in: objectIds },
+    });
+
+    res.status(200).json({
+      message: `Successfully deleted ${deleteResult.deletedCount} Email(s).`,
+      deletedCount: deleteResult.deletedCount,
+      deletedIds: ids,
+    });
+  } catch (error) {
+    console.error("Bulk delete Email error:", error);
+    res
+      .status(500)
+      .json({ message: "Server error during bulk delete of Email's." });
+  }
+});
+
 // DELETE a mentor email by _id
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;

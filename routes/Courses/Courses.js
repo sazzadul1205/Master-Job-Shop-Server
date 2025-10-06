@@ -211,6 +211,56 @@ router.get("/Status", async (req, res) => {
   }
 });
 
+// GET: Check if mentor has any courses
+router.get("/CheckMentor", async (req, res) => {
+  const { mentorEmail } = req.query;
+
+  // If no email provided
+  if (!mentorEmail || mentorEmail.trim() === "") {
+    return res.status(200).json({ hasMentorship: false, count: 0 });
+  }
+
+  try {
+    const count = await CoursesCollection.countDocuments({
+      "Mentor.email": mentorEmail,
+    });
+
+    // Always return a safe response
+    return res.status(200).json({
+      hasMentorship: count > 0,
+      count,
+    });
+  } catch (error) {
+    console.error("Error checking mentor:", error);
+    // Return fallback instead of failing
+    return res.status(200).json({ hasMentorship: false, count: 0 });
+  }
+});
+
+// GET: Fetch single courses by ID
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid courses ID." });
+    }
+
+    const courses = await CoursesCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!courses) {
+      return res.status(404).json({ message: "courses not found." });
+    }
+
+    res.status(200).json(courses);
+  } catch (error) {
+    console.error("GET /courses/:id error:", error);
+    res.status(500).json({ message: "Server error fetching courses." });
+  }
+});
+
 // Create a new Course
 router.post("/", async (req, res) => {
   const courseData = req.body;

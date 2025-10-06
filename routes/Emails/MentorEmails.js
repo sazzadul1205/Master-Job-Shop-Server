@@ -104,6 +104,33 @@ router.get("/Status", async (req, res) => {
   }
 });
 
+// GET: Check if mentor has any emails
+router.get("/CheckMentor", async (req, res) => {
+  const { email } = req.query;
+
+  // Handle missing or empty email safely
+  if (!email || email.trim() === "") {
+    return res.status(200).json({ hasEmails: false, count: 0 });
+  }
+
+  try {
+    // Case-insensitive email check
+    const count = await MentorEmailCollection.countDocuments({
+      email: { $regex: new RegExp(`^${email}$`, "i") },
+    });
+
+    // Always return a safe, clear response
+    return res.status(200).json({
+      hasEmails: count > 0,
+      count,
+    });
+  } catch (error) {
+    console.error("Error checking mentor emails:", error);
+    // Fallback response (never 500 crash)
+    return res.status(200).json({ hasEmails: false, count: 0 });
+  }
+});
+
 // GET single mentor email by _id
 router.get("/:id", async (req, res) => {
   const { id } = req.params;

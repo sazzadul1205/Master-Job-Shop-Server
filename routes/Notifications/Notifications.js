@@ -67,6 +67,33 @@ router.get("/Status", async (req, res) => {
   }
 });
 
+// GET: Check if mentor has any notifications
+router.get("/CheckMentor", async (req, res) => {
+  const { mentorId } = req.query;
+
+  // Handle missing or empty email safely
+  if (!mentorId || mentorId.trim() === "") {
+    return res.status(200).json({ hasNotifications: false, count: 0 });
+  }
+
+  try {
+    // Case-insensitive search for mentor notifications
+    const count = await NotificationsCollection.countDocuments({
+      mentorId: { $regex: new RegExp(`^${mentorId}$`, "i") },
+    });
+
+    // Always return a safe structured response
+    return res.status(200).json({
+      hasNotifications: count > 0,
+      count,
+    });
+  } catch (error) {
+    console.error("Error checking mentor notifications:", error);
+    // Fallback response — avoid throwing a 500 to frontend
+    return res.status(200).json({ hasNotifications: false, count: 0 });
+  }
+});
+
 // Get a single notification by ID
 router.get("/:id", async (req, res) => {
   try {

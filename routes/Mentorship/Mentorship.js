@@ -205,6 +205,32 @@ router.get("/Status", async (req, res) => {
   }
 });
 
+// GET: Check if mentor has any Mentorship
+router.get("/CheckMentor", async (req, res) => {
+  const { mentorEmail } = req.query;
+
+  // If no email provided
+  if (!mentorEmail || mentorEmail.trim() === "") {
+    return res.status(200).json({ hasMentorship: false, count: 0 });
+  }
+
+  try {
+    const count = await MentorshipCollection.countDocuments({
+      "Mentor.email": mentorEmail,
+    });
+
+    // Always return a safe response
+    return res.status(200).json({
+      hasMentorship: count > 0,
+      count,
+    });
+  } catch (error) {
+    console.error("Error checking mentor:", error);
+    // Return fallback instead of failing
+    return res.status(200).json({ hasMentorship: false, count: 0 });
+  }
+});
+
 // GET: Fetch single mentorship by ID
 router.get("/:id", async (req, res) => {
   const { id } = req.params;

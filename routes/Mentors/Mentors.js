@@ -40,6 +40,33 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET - Fetch mentor(s) by email (as URL param) or all mentors
+router.get("/:email", async (req, res) => {
+  try {
+    const { email } = req.params;
+    let query = {};
+
+    if (email) {
+      // Normalize and validate email format
+      const normalizedEmail = email.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(normalizedEmail)) {
+        // Invalid email format, return empty array
+        return res.status(200).json([]);
+      }
+      query.email = normalizedEmail;
+    }
+
+    const mentors = await MentorsCollection.find(query).toArray();
+
+    // Always return array, even if empty
+    return res.status(200).json(mentors || []);
+  } catch (error) {
+    console.error("Error fetching mentors:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // POST - Create a new mentor
 router.post("/", async (req, res) => {
   try {

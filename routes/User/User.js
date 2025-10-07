@@ -149,6 +149,36 @@ router.get("/ProfilesByContacts", async (req, res) => {
   }
 });
 
+// Create a New User
+router.post("/", async (req, res) => {
+  try {
+    const newUser = req.body;
+
+    if (!newUser?.email || !newUser?.name) {
+      return res.status(400).json({ message: "Name and email are required." });
+    }
+
+    const existingUser = await UsersCollection.findOne({
+      email: newUser.email,
+    });
+
+    if (existingUser) {
+      return res
+        .status(409)
+        .json({ message: "User with this email already exists." });
+    }
+
+    const result = await UsersCollection.insertOne(newUser);
+    res.status(201).json({
+      message: "User created successfully.",
+      userId: result.insertedId,
+    });
+  } catch (error) {
+    console.error("POST /Users error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // Add Document to User's documents array
 router.put("/AddDocument/:id", async (req, res) => {
   const id = req.params.id;
@@ -564,33 +594,33 @@ router.put("/ToggleSetting/:id", async (req, res) => {
   }
 });
 
-// Create a New User
-router.post("/", async (req, res) => {
+// PATCH: Update user role only
+router.patch("/RoleUpdate", async (req, res) => {
   try {
-    const newUser = req.body;
+    const { email, role } = req.body;
 
-    if (!newUser?.email || !newUser?.name) {
-      return res.status(400).json({ message: "Name and email are required." });
-    }
-
-    const existingUser = await UsersCollection.findOne({
-      email: newUser.email,
-    });
-
-    if (existingUser) {
+    if (!email || !role) {
       return res
-        .status(409)
-        .json({ message: "User with this email already exists." });
+        .status(400)
+        .json({ message: "Email and new role are required." });
     }
 
-    const result = await UsersCollection.insertOne(newUser);
-    res.status(201).json({
-      message: "User created successfully.",
-      userId: result.insertedId,
+    const result = await UsersCollection.updateOne(
+      { email },
+      { $set: { role } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `User role updated to '${role}' successfully.`,
     });
   } catch (error) {
-    console.error("POST /Users error:", error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error("PATCH /users/update-role error:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
   }
 });
 

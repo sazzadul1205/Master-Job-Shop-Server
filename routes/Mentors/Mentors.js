@@ -129,6 +129,28 @@ router.patch("/Deactivate", async (req, res) => {
   }
 });
 
+// DELETE - Delete a mentor by email
+router.delete("/ByEmail", async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const result = await MentorsCollection.deleteOne({ email });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Mentor not found" });
+    }
+
+    return res.status(200).json({ message: "Mentor deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting mentor by email:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // DELETE - Delete a mentor by ID
 router.delete("/:id", async (req, res) => {
   try {

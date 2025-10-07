@@ -40,26 +40,30 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET - Fetch mentor(s) by email (as URL param) or all mentors
-router.get("/:email", async (req, res) => {
+// GET - Fetch mentor by email (as URL param) or all mentors
+router.get("/:email?", async (req, res) => {
   try {
     const { email } = req.params;
-    let query = {};
 
     if (email) {
       // Normalize and validate email format
       const normalizedEmail = email.trim().toLowerCase();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
       if (!emailRegex.test(normalizedEmail)) {
-        // Invalid email format, return empty array
-        return res.status(200).json([]);
+        // Invalid email format, return null object
+        return res.status(200).json(null);
       }
-      query.email = normalizedEmail;
+
+      // Find one mentor by email
+      const mentor = await MentorsCollection.findOne({
+        email: normalizedEmail,
+      });
+      return res.status(200).json(mentor || null);
     }
 
-    const mentors = await MentorsCollection.find(query).toArray();
-
-    // Always return array, even if empty
+    // If no email param, return all mentors as array
+    const mentors = await MentorsCollection.find().toArray();
     return res.status(200).json(mentors || []);
   } catch (error) {
     console.error("Error fetching mentors:", error);

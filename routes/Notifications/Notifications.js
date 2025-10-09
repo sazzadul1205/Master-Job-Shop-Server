@@ -110,46 +110,14 @@ router.get("/:id", async (req, res) => {
 // Create a new notification with required fields validation
 router.post("/", async (req, res) => {
   try {
-    const {
-      title,
-      message,
-      userEmail,
-      mentorId,
-      type,
-      AppliedToId,
-      applicationId,
-    } = req.body;
-
-    // Check for missing fields
-    const missingFields = [];
-    if (!title) missingFields.push("title");
-    if (!message) missingFields.push("message");
-    if (!userEmail) missingFields.push("userEmail");
-    if (!mentorId) missingFields.push("mentorId");
-    if (!type) missingFields.push("type");
-    if (!AppliedToId) missingFields.push("AppliedToId");
-    if (!applicationId) missingFields.push("applicationId");
-
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        message: `Missing required field(s): ${missingFields.join(", ")}`,
-      });
-    }
-
-    // Build notification object
     const notificationPayload = {
-      title,
-      message,
-      userEmail,
-      mentorId,
-      type,
-      AppliedToId,
-      applicationId,
+      ...req.body, // Accept all fields sent by client
       createdAt: new Date().toISOString(),
       read: false,
     };
 
     const result = await NotificationsCollection.insertOne(notificationPayload);
+
     res.status(201).json({ insertedId: result.insertedId });
   } catch (err) {
     res.status(500).json({ message: err.message });

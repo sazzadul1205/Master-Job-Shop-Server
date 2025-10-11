@@ -83,6 +83,8 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://192.168.0.11:5173",
+      "http://192.168.0.105:5173",
+      "http://192.168.0.3:5173",
       "https://master-job-shop-server-qwbp5hp6w-sazzadul-islams-projects.vercel.app/",
     ],
     credentials: true,
@@ -201,7 +203,7 @@ process.on("unhandledRejection", (reason, promise) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
 

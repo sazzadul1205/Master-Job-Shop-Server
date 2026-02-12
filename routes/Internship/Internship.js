@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { client } = require("../config/db");
+const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
 const InternshipCollection = client
@@ -8,37 +8,59 @@ const InternshipCollection = client
   .collection("Internship");
 
 // Get Internship(s)
-app.get("/Internship", async (req, res) => {
-  const { id, postedBy } = req.query;
-
+router.get("/", async (req, res) => {
+  const { id, postedBy, internshipIds } = req.query;
   let query = {};
 
-  if (id) {
-    try {
-      query._id = new ObjectId(id);
-    } catch {
-      return res.status(400).send({ message: "Invalid id format." });
-    }
-  } else if (postedBy) {
-    query.postedBy = postedBy;
-  }
-
   try {
+    // Single Internship ID
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res
+          .status(400)
+          .json({ message: "Invalid internship ID format." });
+      }
+      query._id = new ObjectId(id);
+    }
+
+    // Multiple Internship IDs (comma-separated string)
+    if (internshipIds) {
+      try {
+        const idsArray = internshipIds.split(",").map((id) => {
+          const trimmed = id.trim();
+          if (!ObjectId.isValid(trimmed)) throw new Error();
+          return new ObjectId(trimmed);
+        });
+        query._id = { $in: idsArray };
+      } catch (err) {
+        return res.status(400).json({
+          message:
+            "Invalid internshipIds format. Must be a comma-separated list of valid IDs.",
+        });
+      }
+    }
+
+    // Posted by email
+    if (postedBy) {
+      query["postedBy.email"] = postedBy;
+    }
+
     const results = await InternshipCollection.find(query).toArray();
 
+    // Return single or multiple results
     if (results.length === 1) {
-      return res.send(results[0]); // Send single object if only one found
+      return res.status(200).json(results[0]);
     } else {
-      return res.send(results); // Send array if 0 or more than 1 found
+      return res.status(200).json(results);
     }
   } catch (error) {
     console.error("Error fetching internships:", error);
-    res.status(500).send({ message: "Error fetching internships", error });
+    res.status(500).json({ message: "Error fetching internships", error });
   }
 });
 
 // Total Posted Internship Count
-app.get("/InternshipCount", async (req, res) => {
+router.get("/InternshipCount", async (req, res) => {
   try {
     const count = await InternshipCollection.countDocuments();
     res.json({ count });
@@ -48,8 +70,256 @@ app.get("/InternshipCount", async (req, res) => {
   }
 });
 
+// GET: Daily Internship post counts by postedBy email or all if none provided
+router.get("/DailyInternshipPosted", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    const matchStage = postedBy ? { "postedBy.email": postedBy } : {};
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          postedAtDate: {
+            $convert: {
+              input: "$postedAt",
+              to: "date",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      {
+        $match: {
+          postedAtDate: { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$postedAtDate" } },
+          DocumentCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          postedDate: "$_id",
+          DocumentCount: 1,
+        },
+      },
+    ];
+
+    const results = await InternshipCollection.aggregate(pipeline).toArray();
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: postedBy
+          ? "No internships found for the given postedBy."
+          : "No internships found.",
+      });
+    }
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error fetching daily internship posts:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching daily internship posts.",
+    });
+  }
+});
+
+// GET: Fetch Internship IDs by postedBy email
+router.get("/Ids", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    if (!postedBy) {
+      return res
+        .status(400)
+        .json({ message: "postedBy query parameter is required." });
+    }
+
+    // Find internships where postedBy.email matches the query param
+    const internships = await InternshipCollection.find(
+      { "postedBy.email": postedBy },
+      { projection: { _id: 1 } }
+    ).toArray();
+
+    if (!internships || internships.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No internships found for the given postedBy." });
+    }
+
+    // Extract _id strings
+    const ids = internships.map((internship) => internship._id.toString());
+
+    return res.status(200).json(ids);
+  } catch (error) {
+    console.error("Error fetching internship IDs by postedBy:", error);
+    return res
+      .status(500)
+      .json({ message: "An error occurred while fetching internship IDs." });
+  }
+});
+
+// GET: Fetch Internship Summaries by ID(s)
+router.get("/Summary", async (req, res) => {
+  try {
+    const { id, internshipIds } = req.query;
+
+    // Handle single internship by id
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid Internship ID." });
+      }
+
+      const internship = await InternshipCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { _id: 1, title: 1 } }
+      );
+
+      if (!internship) {
+        return res.status(404).json({ message: "Internship not found." });
+      }
+      return res.status(200).json(internship);
+    }
+
+    // Handle multiple internshipIds (CSV string)
+    if (internshipIds) {
+      let idsArray;
+      try {
+        idsArray = internshipIds
+          .split(",")
+          .map((id) => new ObjectId(id.trim()));
+      } catch (err) {
+        return res
+          .status(400)
+          .json({ message: "Invalid internshipIds format." });
+      }
+
+      const internship = await InternshipCollection.find(
+        { _id: { $in: idsArray } },
+        { projection: { _id: 1, title: 1 } }
+      ).toArray();
+
+      return res.status(200).json(internship);
+    }
+
+    res
+      .status(400)
+      .json({ message: "Please provide either 'id' or 'internshipIds'." });
+  } catch (error) {
+    console.error("Error fetching internship summaries:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching internship summaries.",
+    });
+  }
+});
+
+// GET: Fetch internships by IDs and sort by deadline proximity (expired first)
+router.get("/Deadline", async (req, res) => {
+  try {
+    const { internshipIds, limit } = req.query; // Receive internship IDs and optional limit
+
+    // If no internship IDs provided, return bad request
+    if (!internshipIds) {
+      return res
+        .status(400)
+        .json({ message: "internshipIds query is required." });
+    }
+
+    // Parse limit (default to 4 if not given)
+    const limitNumber = parseInt(limit, 10) || 4;
+
+    let idsArray;
+    try {
+      // Convert comma-separated internship IDs into MongoDB ObjectIds
+      idsArray = internshipIds.split(",").map((id) => new ObjectId(id.trim()));
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid internshipIds format." });
+    }
+
+    // Fetch only the needed fields from DB
+    const internships = await InternshipCollection.find({
+      _id: { $in: idsArray },
+    })
+      .project({
+        _id: 1, // Keep ID
+        title: 1, // Keep title
+        deliveryDeadline: 1, // Keep deadline
+      })
+      .toArray();
+
+    // If no matching internships, return 404
+    if (!internships.length) {
+      return res.status(404).json({ message: "No internships found." });
+    }
+
+    const now = new Date(); // Current time
+
+    // Process each internship to calculate time left and expired status
+    const processedInternships = internships.map((internship) => {
+      const deadline = internship.deliveryDeadline
+        ? new Date(internship.deliveryDeadline)
+        : null;
+
+      let expired = false;
+      let timeLeftText;
+
+      if (deadline) {
+        const diffMs = deadline - now; // Time difference in ms
+        const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hoursLeft = Math.floor(
+          (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+        );
+
+        if (diffMs <= 0) {
+          expired = true;
+          timeLeftText = "Expired";
+        } else {
+          timeLeftText = `${daysLeft} day${
+            daysLeft !== 1 ? "s" : ""
+          } ${hoursLeft} hour${hoursLeft !== 1 ? "s" : ""}`;
+        }
+      } else {
+        timeLeftText = "No deadline";
+      }
+
+      return {
+        _id: internship._id,
+        title: internship.title,
+        deliveryDeadline: deadline ? deadline.toISOString() : null,
+        timeLeft: timeLeftText,
+        expired,
+      };
+    });
+
+    // Sort internships: expired first (earliest expired first), then soonest deadline
+    processedInternships.sort((a, b) => {
+      if (a.expired && b.expired) {
+        return new Date(a.deliveryDeadline) - new Date(b.deliveryDeadline);
+      }
+      if (a.expired && !b.expired) return -1;
+      if (!a.expired && b.expired) return 1;
+      return new Date(a.deliveryDeadline) - new Date(b.deliveryDeadline);
+    });
+
+    // Send only the number of internships requested (default 4)
+    res.status(200).json(processedInternships.slice(0, limitNumber));
+  } catch (error) {
+    console.error("Error fetching internships by deadline:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while fetching internships." });
+  }
+});
+
 // Post a new Internship
-app.post("/Internship", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const request = req.body;
     const result = await InternshipCollection.insertOne(request);
@@ -61,7 +331,7 @@ app.post("/Internship", async (req, res) => {
 });
 
 // Apply for an Internship (push applicant data to applicants array)
-app.post("/Internship/Apply/:id", async (req, res) => {
+router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id; // Internship ID from URL params
   const applicantData = req.body; // Applicant data from request body
 
@@ -87,7 +357,7 @@ app.post("/Internship/Apply/:id", async (req, res) => {
 });
 
 // Update an Internship by ID
-app.put("/Internship/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updateData = req.body;
 
@@ -111,7 +381,7 @@ app.put("/Internship/:id", async (req, res) => {
 });
 
 // Delete an Internship by ID
-app.delete("/Internship/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const id = req.params.id;
 
   try {
@@ -133,7 +403,7 @@ app.delete("/Internship/:id", async (req, res) => {
 });
 
 // Delete an Applicant from a Posted Internship by ID
-app.delete("/Internship/Apply/:id", async (req, res) => {
+router.delete("/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const { applicantEmail } = req.body;
 

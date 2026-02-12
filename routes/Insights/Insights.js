@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { client } = require("../config/db");
+const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
 const InsightsCollection = client
@@ -8,7 +8,7 @@ const InsightsCollection = client
   .collection("Salary-Insight");
 
 // Get Salary Insight(s)
-app.get("/Insights", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { id } = req.query;
     let query = {};
@@ -34,7 +34,7 @@ app.get("/Insights", async (req, res) => {
 });
 
 // Total Posted Salary Insight Count API
-app.get("/InsightsCount", async (req, res) => {
+router.get("/InsightsCount", async (req, res) => {
   try {
     const count = await InsightsCollection.countDocuments();
     res.status(200).json({ count });
@@ -48,7 +48,7 @@ app.get("/InsightsCount", async (req, res) => {
 });
 
 // Post Salary Insight
-app.post("/Insights", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const request = req.body;
 
@@ -72,7 +72,7 @@ app.post("/Insights", async (req, res) => {
 });
 
 // Delete a single Salary Insight by ID
-app.delete("/Insights/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const id = req.params.id;
 

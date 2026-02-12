@@ -1,18 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const { client } = require("../config/db");
+const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
 const GigsCollection = client.db("Master-Job-Shop").collection("Posted-Gig");
 
 // Get Posted Gig
-app.get("/Gigs", async (req, res) => {
-  const { id, postedBy, email } = req.query;
+router.get("/", async (req, res) => {
+  const { id, gigIds, postedBy, email } = req.query;
 
   try {
     const query = {};
 
-    // Filter by Gig ID
+    // Single Gig ID
     if (id) {
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ message: "Invalid ID format." });
@@ -20,12 +20,26 @@ app.get("/Gigs", async (req, res) => {
       query._id = new ObjectId(id);
     }
 
-    // Filter by PostedBy email
-    if (postedBy) {
-      query.PostedBy = postedBy;
+    // Multiple Gig IDs
+    if (gigIds) {
+      try {
+        const idsArray = gigIds.split(",").map((id) => {
+          if (!ObjectId.isValid(id.trim())) throw new Error();
+          return new ObjectId(id.trim());
+        });
+
+        query._id = { $in: idsArray };
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid gigIds format." });
+      }
     }
 
-    // Filter by applicant email or related email fields (adjust field name if needed)
+    // Posted by email
+    if (postedBy) {
+      query["postedBy.email"] = postedBy;
+    }
+
+    // Filter by applicant email
     if (email) {
       query["PeopleApplied.email"] = email;
     }
@@ -37,7 +51,6 @@ app.get("/Gigs", async (req, res) => {
       return res.status(200).json(results[0]);
     }
 
-    // Return array (empty or multiple)
     return res.status(200).json(results);
   } catch (error) {
     console.error("Error fetching gigs:", error);
@@ -49,7 +62,7 @@ app.get("/Gigs", async (req, res) => {
 });
 
 // Get Total Posted Gigs Count
-app.get("/GigsCount", async (req, res) => {
+router.get("/GigsCount", async (req, res) => {
   try {
     const count = await GigsCollection.countDocuments();
     res.status(200).json({ count });
@@ -62,8 +75,241 @@ app.get("/GigsCount", async (req, res) => {
   }
 });
 
+// GET: Daily gig post counts by postedBy email or all if none provided
+router.get("/DailyGigPosted", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    const matchStage = postedBy ? { "postedBy.email": postedBy } : {};
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          postedAtDate: {
+            $convert: {
+              input: "$postedAt",
+              to: "date",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      { $match: { postedAtDate: { $ne: null } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$postedAtDate" } },
+          DocumentCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          postedDate: "$_id",
+          DocumentCount: 1,
+        },
+      },
+    ];
+
+    const results = await GigsCollection.aggregate(pipeline).toArray();
+
+    if (results.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No gigs found for the given criteria." });
+    }
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error fetching daily gig posts:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching daily gig posts.",
+    });
+  }
+});
+
+// GET: Fetch Gig IDs by postedBy email
+router.get("/Ids", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    if (!postedBy) {
+      return res
+        .status(400)
+        .json({ message: "postedBy query parameter is required." });
+    }
+
+    // Find gigs where postedBy.email matches the query param
+    const gigs = await GigsCollection.find(
+      { "postedBy.email": postedBy },
+      { projection: { _id: 1 } }
+    ).toArray();
+
+    if (!gigs || gigs.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No gigs found for the given postedBy." });
+    }
+
+    // Extract _id strings
+    const ids = gigs.map((gig) => gig._id.toString());
+
+    return res.status(200).json(ids);
+  } catch (error) {
+    console.error("Error fetching gig IDs by postedBy:", error);
+    return res
+      .status(500)
+      .json({ message: "An error occurred while fetching gig IDs." });
+  }
+});
+
+// GET: Fetch Gig Summaries by ID(s)
+router.get("/Summary", async (req, res) => {
+  try {
+    const { id, gigIds } = req.query;
+
+    // Handle single gig by id
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid gig ID." });
+      }
+
+      const gig = await GigsCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { _id: 1, title: 1 } }
+      );
+
+      if (!gig) {
+        return res.status(404).json({ message: "Gig not found." });
+      }
+      return res.status(200).json(gig);
+    }
+
+    // Handle multiple gigIds (CSV string)
+    if (gigIds) {
+      let idsArray;
+      try {
+        idsArray = gigIds.split(",").map((id) => new ObjectId(id.trim()));
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid gigIds format." });
+      }
+
+      const gigs = await GigsCollection.find(
+        { _id: { $in: idsArray } },
+        { projection: { _id: 1, title: 1 } }
+      ).toArray();
+
+      return res.status(200).json(gigs);
+    }
+
+    res
+      .status(400)
+      .json({ message: "Please provide either 'id' or 'gigIds'." });
+  } catch (error) {
+    console.error("Error fetching gig summaries:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while fetching gig summaries." });
+  }
+});
+
+// GET: Fetch gigs by IDs and sort by deadline proximity (expired first)
+router.get("/Deadline", async (req, res) => {
+  try {
+    const { gigIds, limit } = req.query;
+
+    if (!gigIds) {
+      return res.status(400).json({ message: "gigIds query is required." });
+    }
+
+    let idsArray;
+    try {
+      idsArray = gigIds.split(",").map((id) => {
+        if (!ObjectId.isValid(id.trim())) throw new Error();
+        return new ObjectId(id.trim());
+      });
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid gigIds format." });
+    }
+
+    const gigs = await GigsCollection.find({
+      _id: { $in: idsArray },
+    })
+      .project({
+        _id: 1,
+        title: 1,
+        deliveryDeadline: 1,
+      })
+      .toArray();
+
+    if (!gigs.length) {
+      return res.status(404).json({ message: "No gigs found." });
+    }
+
+    const now = new Date();
+
+    // Calculate time left & mark expired
+    const gigsWithDeadline = gigs.map((gig) => {
+      const deadline = gig.deliveryDeadline
+        ? new Date(gig.deliveryDeadline)
+        : null;
+
+      let daysLeft = null;
+      let hoursLeft = null;
+      let expired = false;
+
+      if (deadline) {
+        const diffMs = deadline - now;
+        if (diffMs <= 0) {
+          expired = true;
+          daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24)); // negative days
+        } else {
+          daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          hoursLeft = Math.floor(
+            (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+          );
+        }
+      }
+
+      return {
+        _id: gig._id,
+        title: gig.title,
+        deliveryDeadline: gig.deliveryDeadline,
+        timeLeft: expired
+          ? "Expired"
+          : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} ${hoursLeft} hour${
+              hoursLeft !== 1 ? "s" : ""
+            }`,
+        expired,
+        daysLeft,
+      };
+    });
+
+    // Sort: expired first (oldest expired first), then by soonest deadline
+    gigsWithDeadline.sort((a, b) => {
+      if (a.expired && b.expired) {
+        return a.daysLeft - b.daysLeft; // more negative = expired longer ago
+      }
+      if (a.expired && !b.expired) return -1;
+      if (!a.expired && b.expired) return 1;
+      return a.daysLeft - b.daysLeft; // soonest deadline first
+    });
+
+    // Apply limit (default 4)
+    const resultLimit = parseInt(limit) || 4;
+    const limitedResults = gigsWithDeadline.slice(0, resultLimit);
+
+    res.status(200).json(limitedResults);
+  } catch (error) {
+    console.error("Error fetching gigs by deadline:", error);
+    res.status(500).json({ message: "An error occurred while fetching gigs." });
+  }
+});
+
 // Apply for a Posted Gig
-app.post("/Gigs/Apply/:id", async (req, res) => {
+router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const bidData = req.body;
 
@@ -96,36 +342,39 @@ app.post("/Gigs/Apply/:id", async (req, res) => {
 });
 
 // Post a New Gig
-app.post("/Gigs", async (req, res) => {
+router.post("/", async (req, res) => {
   const gigData = req.body;
 
-  if (!gigData || !gigData.title || !gigData.PostedBy) {
-    return res
-      .status(400)
-      .send({ message: "Invalid gig data. Title and PostedBy are required." });
+  if (!gigData || !gigData.title || !gigData.postedBy) {
+    return res.status(400).send({
+      message: "Invalid gig data. 'title' and 'postedBy' are required.",
+    });
   }
 
   try {
+    // Insert into database
     const result = await GigsCollection.insertOne(gigData);
+
     res.status(201).send({
       message: "Gig posted successfully!",
       insertedId: result.insertedId,
     });
   } catch (error) {
     console.error("Error posting gig:", error);
-    res
-      .status(500)
-      .send({ message: "Failed to post gig", error: error.message });
+    res.status(500).send({
+      message: "Failed to post gig",
+      error: error.message,
+    });
   }
 });
 
 // Update a Posted Gig
-app.put("/Gigs/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updatedData = req.body;
 
   if (!id || !updatedData || typeof updatedData !== "object") {
-    return res.status(400).send({
+    return res.status(400).json({
       message: "Invalid request. Gig ID and update data are required.",
     });
   }
@@ -134,22 +383,23 @@ app.put("/Gigs/:id", async (req, res) => {
     const query = { _id: new ObjectId(id) };
     const update = { $set: updatedData };
 
-    const result = await PostedGigCollection.updateOne(query, update);
+    const result = await GigsCollection.updateOne(query, update);
 
     if (result.matchedCount === 0) {
-      return res.status(404).send({ message: "Gig not found." });
+      return res.status(404).json({ message: "Gig not found." });
     }
 
     if (result.modifiedCount === 0) {
+      // No changes detected
       return res
         .status(200)
-        .send({ message: "No changes were made to the gig." });
+        .json({ message: "No changes were made to the gig." });
     }
 
-    res.status(200).send({ message: "Gig updated successfully!" });
+    return res.status(200).json({ message: "Gig updated successfully!" });
   } catch (error) {
     console.error("Error updating the gig:", error);
-    res.status(500).send({
+    return res.status(500).json({
       message: "An error occurred while updating the gig.",
       error: error.message,
     });
@@ -157,7 +407,7 @@ app.put("/Gigs/:id", async (req, res) => {
 });
 
 // Update a Posted Gig's State or Rating
-app.patch("/Gigs/:id", async (req, res) => {
+router.patch("/:id", async (req, res) => {
   const gigId = req.params.id;
   const { state, rating } = req.body;
 
@@ -175,7 +425,7 @@ app.patch("/Gigs/:id", async (req, res) => {
     const query = { _id: new ObjectId(gigId) };
     const update = { $set: updateFields };
 
-    const result = await PostedGigCollection.updateOne(query, update);
+    const result = await GigsCollection.updateOne(query, update);
 
     if (result.matchedCount === 0) {
       return res.status(404).send({ message: "Gig not found." });
@@ -201,7 +451,7 @@ app.patch("/Gigs/:id", async (req, res) => {
 });
 
 // Delete a specific bidder from the peopleBided array
-app.delete("/Gigs/Bidder/:id", async (req, res) => {
+router.delete("/Bidder/:id", async (req, res) => {
   const { id } = req.params;
   const { email } = req.body;
 
@@ -220,7 +470,7 @@ app.delete("/Gigs/Bidder/:id", async (req, res) => {
       },
     };
 
-    const result = await PostedGigCollection.updateOne(query, update);
+    const result = await GigsCollection.updateOne(query, update);
 
     if (result.modifiedCount > 0) {
       res.status(200).send({ message: "Bidder removed successfully." });
@@ -239,7 +489,7 @@ app.delete("/Gigs/Bidder/:id", async (req, res) => {
 });
 
 // Delete a single Posted Gig by ID
-app.delete("/Gigs/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
   // Validate ID
@@ -249,7 +499,7 @@ app.delete("/Gigs/:id", async (req, res) => {
 
   try {
     const query = { _id: new ObjectId(id) };
-    const result = await PostedGigCollection.deleteOne(query);
+    const result = await GigsCollection.deleteOne(query);
 
     if (result.deletedCount > 0) {
       res.status(200).send({ message: "Gig deleted successfully!" });

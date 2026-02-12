@@ -1,26 +1,38 @@
 const express = require("express");
 const router = express.Router();
-const { client } = require("../config/db");
+const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
 // Collection for Users
 const UsersCollection = client.db("Master-Job-Shop").collection("Users");
 
 // Get All Users or a Specific User by Email
-app.get("/Users", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const { email } = req.query;
+    const { email, id } = req.query;
 
-    if (email) {
-      const user = await UsersCollection.findOne({ email });
-
+    // Fetch by _id
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid user ID format." });
+      }
+      const user = await UsersCollection.findOne({ _id: new ObjectId(id) });
       if (!user) {
         return res.status(404).json({ message: "User not found." });
       }
-
       return res.status(200).json(user);
     }
 
+    // Fetch by email
+    if (email) {
+      const user = await UsersCollection.findOne({ email });
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+      return res.status(200).json(user);
+    }
+
+    // Fetch all users
     const users = await UsersCollection.find().toArray();
     res.status(200).json(users);
   } catch (error) {
@@ -30,7 +42,7 @@ app.get("/Users", async (req, res) => {
 });
 
 // Get Total Users Count
-app.get("/Users/count", async (req, res) => {
+router.get("/UserCount", async (req, res) => {
   try {
     const count = await UsersCollection.countDocuments();
     res.status(200).json({ count });
@@ -40,10 +52,182 @@ app.get("/Users/count", async (req, res) => {
   }
 });
 
-// Update User by ID (PUT)
-app.put("/Users/UpdateUser/:id", async (req, res) => {
-  const id = req.params.id; // Get the user ID from the URL params
-  const updatedUser = req.body; // Get the updated user data from the request body
+// Check if email exists (GET API)
+router.get("/CheckEmail", async (req, res) => {
+  try {
+    const email = req.query.email;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email parameter is required." });
+    }
+
+    const existingUser = await UsersCollection.findOne({ email });
+    res.status(200).json({
+      message: existingUser
+        ? "Email is already in use."
+        : "Email is available.",
+      exists: !!existingUser,
+    });
+  } catch (error) {
+    console.error("Error checking email:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// Get User Role by ID or Email
+router.get("/Role", async (req, res) => {
+  try {
+    const { id, email } = req.query;
+
+    if (!id && !email) {
+      return res
+        .status(400)
+        .json({ message: "Please provide either id or email." });
+    }
+
+    let user;
+
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid ID format." });
+      }
+      user = await UsersCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { role: 1, _id: 0 } }
+      );
+    } else if (email) {
+      user = await UsersCollection.findOne(
+        { email },
+        { projection: { role: 1, _id: 0 } }
+      );
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json(user); // returns { role: "Member" }
+  } catch (error) {
+    console.error("GET /users/role error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+router.get("/ProfilesByContacts", async (req, res) => {
+  try {
+    const { emails, phones } = req.query;
+
+    // Convert comma-separated string to arrays
+    const emailArray = emails ? emails.split(",") : [];
+    const phoneArray = phones ? phones.split(",") : [];
+
+    if (emailArray.length === 0 && phoneArray.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Provide at least one email or phone number." });
+    }
+
+    // Build query
+    const query = { $or: [] };
+    if (emailArray.length) query.$or.push({ email: { $in: emailArray } });
+    if (phoneArray.length) query.$or.push({ phone: { $in: phoneArray } });
+
+    // Fetch users
+    const users = await UsersCollection.find(query).toArray();
+
+    // Map to required fields
+    const results = users.map((user) => ({
+      email: user.email,
+      phone: user.phone,
+      profileImage: user.profileImage || null,
+    }));
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("GET /users/profiles-by-contacts error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// Create a New User
+router.post("/", async (req, res) => {
+  try {
+    const newUser = req.body;
+
+    if (!newUser?.email || !newUser?.name) {
+      return res.status(400).json({ message: "Name and email are required." });
+    }
+
+    const existingUser = await UsersCollection.findOne({
+      email: newUser.email,
+    });
+
+    if (existingUser) {
+      return res
+        .status(409)
+        .json({ message: "User with this email already exists." });
+    }
+
+    const result = await UsersCollection.insertOne(newUser);
+    res.status(201).json({
+      message: "User created successfully.",
+      userId: result.insertedId,
+    });
+  } catch (error) {
+    console.error("POST /Users error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// Add Document to User's documents array
+router.put("/AddDocument/:id", async (req, res) => {
+  const id = req.params.id;
+  const newDoc = req.body;
+
+  if (!newDoc.name) {
+    return res.status(400).send({ message: "Document name is required" });
+  }
+
+  try {
+    const filter = { _id: new ObjectId(id) };
+
+    // First, check if a document with the same name already exists in the user's documents array
+    const user = await UsersCollection.findOne(filter);
+
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    if (user.documents && Array.isArray(user.documents)) {
+      const nameExists = user.documents.some((doc) => doc.name === newDoc.name);
+      if (nameExists) {
+        return res
+          .status(400)
+          .send({ message: "Document name already exists" });
+      }
+    }
+
+    // Add the new document to the documents array (create array if it doesn't exist)
+    const updateResult = await UsersCollection.updateOne(
+      filter,
+      { $push: { documents: newDoc } },
+      { upsert: false } // don't create new user if not found
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    res.send({ message: "Document added successfully", updateResult });
+  } catch (error) {
+    res.status(500).send({ message: "Failed to add document", error });
+  }
+});
+
+// PUT : Update User by ID
+router.put("/:id", async (req, res) => {
+  const id = req.params.id;
+  const updatedUser = req.body;
 
   try {
     // Create a filter to find the user by ID
@@ -73,32 +257,484 @@ app.put("/Users/UpdateUser/:id", async (req, res) => {
   }
 });
 
-// Create a New User
-app.post("/Users", async (req, res) => {
+// PUT : Reactivate User Account
+router.put("/ReActivate/:id", async (req, res) => {
   try {
-    const newUser = req.body;
+    const { id } = req.params;
+    const { reinstatedReason } = req.body;
 
-    if (!newUser?.email || !newUser?.name) {
-      return res.status(400).json({ message: "Name and email are required." });
-    }
-
-    const existingUser = await UsersCollection.findOne({
-      email: newUser.email,
-    });
-
-    if (existingUser) {
+    if (!reinstatedReason) {
       return res
-        .status(409)
-        .json({ message: "User with this email already exists." });
+        .status(400)
+        .json({ message: "Reinstated reason is required." });
     }
 
-    const result = await UsersCollection.insertOne(newUser);
-    res.status(201).json({
-      message: "User created successfully.",
-      userId: result.insertedId,
+    const result = await UsersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $unset: {
+          deleteStatus: "",
+          deletedAt: "",
+        },
+        $set: {
+          reinstatedAt: new Date(),
+          reinstatedReason,
+        },
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({ message: "Account successfully reactivated." });
+  } catch (error) {
+    console.error("PUT /ReActivate/:id error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// PUT /Users/ToggleStar/:id
+router.put("/ToggleStar/:id", async (req, res) => {
+  const userId = req.params.id;
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).send({ message: "Document name is required" });
+  }
+
+  try {
+    const user = await UsersCollection.findOne({ _id: new ObjectId(userId) });
+    if (!user) return res.status(404).send({ message: "User not found" });
+
+    // Count how many are currently starred
+    const starredDocs = user.documents?.filter((doc) => doc.starred) || [];
+
+    // Find target document
+    const targetDoc = user.documents?.find((doc) => doc.name === name);
+    if (!targetDoc)
+      return res.status(404).send({ message: "Document not found" });
+
+    // Toggle logic
+    let newStarredValue = !targetDoc.starred;
+
+    // Enforce max 3 starred documents
+    if (newStarredValue && starredDocs.length >= 3) {
+      return res
+        .status(400)
+        .send({ message: "Cannot star more than 3 documents" });
+    }
+
+    // Update only the matched document's starred field
+    const updateResult = await UsersCollection.updateOne(
+      { _id: new ObjectId(userId), "documents.name": name },
+      { $set: { "documents.$.starred": newStarredValue } }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return res
+        .status(404)
+        .send({ message: "Document not found or user not found" });
+    }
+
+    res.status(200).send({
+      message: `Document '${name}' starred status updated to ${newStarredValue}`,
+      starred: newStarredValue,
     });
   } catch (error) {
-    console.error("POST /Users error:", error);
+    console.error("Error toggling starred:", error);
+    res.status(500).send({ message: "Internal server error", error });
+  }
+});
+
+// Add a skill to a user profile (no duplicates, auto-initializes skills array if missing)
+router.put("/AddSkill/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { skill } = req.body;
+
+    // Validate skill input
+    if (!skill || typeof skill !== "string") {
+      return res
+        .status(400)
+        .json({ message: "Skill is required and must be a string." });
+    }
+
+    // Find user by ID
+    const user = await UsersCollection.findOne({ _id: new ObjectId(id) });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Default to empty array if skills doesn't exist
+    const existingSkills = user.skills || [];
+
+    // Prevent duplicates
+    if (existingSkills.includes(skill)) {
+      return res.status(409).json({ message: "Skill already exists." });
+    }
+
+    // Add skill to list
+    const updatedSkills = [...existingSkills, skill];
+
+    // Save updated skills array to user document
+    await UsersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { skills: updatedSkills } }
+    );
+
+    // Respond with updated skills
+    res
+      .status(200)
+      .json({ message: "Skill added successfully.", skills: updatedSkills });
+  } catch (err) {
+    console.error("PUT /AddSkill/:id error:", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// Update or Create Preferences
+router.put("/EditPreferences/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { desiredRole, jobType, preferredLocation, salaryFrom, salaryTo } =
+      req.body;
+
+    if (
+      !desiredRole ||
+      !jobType ||
+      !preferredLocation ||
+      !salaryFrom ||
+      !salaryTo
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Missing required preference fields." });
+    }
+
+    const filter = { _id: new ObjectId(userId) };
+
+    const updateDoc = {
+      $set: {
+        preferences: {
+          desiredRole,
+          jobType,
+          preferredLocation,
+          salaryFrom,
+          salaryTo,
+        },
+      },
+    };
+
+    const result = await UsersCollection.updateOne(filter, updateDoc, {
+      upsert: false,
+    });
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({
+      message: "Preferences updated successfully.",
+      modifiedCount: result.modifiedCount,
+      acknowledged: result.acknowledged,
+    });
+  } catch (error) {
+    console.error("PUT /EditPreferences/:id error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// PUT Edit Personal Information
+router.put("/EditPersonalInformation/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { phone, availability, experienceLevel, socials } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const filter = { _id: new ObjectId(id) };
+
+    const updateFields = {};
+    if (phone !== undefined) updateFields.phone = phone;
+    if (availability !== undefined) updateFields.availability = availability;
+    if (experienceLevel !== undefined)
+      updateFields.experienceLevel = experienceLevel;
+    if (socials !== undefined) updateFields.socials = socials;
+
+    const updateDoc = { $set: updateFields };
+
+    const updateResult = await UsersCollection.updateOne(filter, updateDoc);
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const updatedUser = await UsersCollection.findOne(filter);
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found after update." });
+    }
+
+    const getSocialLink = (platform) =>
+      (updatedUser.socials || []).find((s) => s.platform === platform)?.url ||
+      "";
+
+    res.status(200).json({
+      email: updatedUser.email || "",
+      phone: updatedUser.phone || "",
+      availability: updatedUser.availability || "",
+      experienceLevel: updatedUser.experienceLevel || "",
+      portfolio: getSocialLink("portfolio"),
+      linkedin: getSocialLink("linkedin"),
+      github: getSocialLink("github"),
+    });
+  } catch (error) {
+    console.error("PUT /Users/EditPersonalInformation/:id error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// PUT Update or create header fields
+router.put("/EditHeader/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { fullName, title, location, bio, profileImage } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const filter = { _id: new ObjectId(id) };
+
+    const updateFields = {};
+    if (fullName !== undefined) updateFields.fullName = fullName;
+    if (title !== undefined) updateFields.title = title;
+    if (location !== undefined) updateFields.location = location;
+    if (bio !== undefined) updateFields.bio = bio;
+    if (profileImage !== undefined) updateFields.profileImage = profileImage;
+
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
+    const updateDoc = { $set: updateFields };
+
+    const updateResult = await UsersCollection.updateOne(filter, updateDoc);
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const updatedUser = await UsersCollection.findOne(filter);
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found after update." });
+    }
+
+    res.status(200).json({
+      message: "Header updated successfully.",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("PUT /Users/EditHeader/:id error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// PUT Toggle Setting Field (by User ID)
+router.put("/ToggleSetting/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { field, value } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID." });
+    }
+
+    const validFields = [
+      "emailUpdates",
+      "twoFactorAuth",
+      "isProfilePublic",
+      "googleConnected",
+      "facebookConnected",
+      "notificationsEnabled",
+    ];
+
+    if (!field || typeof value !== "boolean") {
+      return res
+        .status(400)
+        .json({ message: "Field and boolean value are required." });
+    }
+
+    if (!validFields.includes(field)) {
+      return res.status(400).json({ message: "Invalid field name." });
+    }
+
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = { $set: { [field]: value } };
+
+    const updateResult = await UsersCollection.updateOne(filter, updateDoc);
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const updatedUser = await UsersCollection.findOne(filter);
+    res.status(200).json({
+      message: `${field} updated successfully.`,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("PUT /Users/ToggleSetting/:id error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// PATCH: Update user role only
+router.patch("/RoleUpdate", async (req, res) => {
+  try {
+    const { email, role } = req.body;
+
+    if (!email || !role) {
+      return res
+        .status(400)
+        .json({ message: "Email and new role are required." });
+    }
+
+    const result = await UsersCollection.updateOne(
+      { email },
+      { $set: { role } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `User role updated to '${role}' successfully.`,
+    });
+  } catch (error) {
+    console.error("PATCH /users/update-role error:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
+  }
+});
+
+// DELETE /DeleteDocument/:id
+router.delete("/DeleteDocument/:id", async (req, res) => {
+  const id = req.params.id;
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).send({ message: "Document name is required" });
+  }
+
+  try {
+    const filter = { _id: new ObjectId(id) };
+    const update = { $pull: { documents: { name } } };
+
+    const result = await UsersCollection.updateOne(filter, update);
+
+    if (result.modifiedCount === 0) {
+      return res
+        .status(404)
+        .send({ message: "Document not found or already deleted" });
+    }
+
+    res.send({ message: "Document deleted successfully", result });
+  } catch (error) {
+    res.status(500).send({ message: "Failed to delete document", error });
+  }
+});
+
+// DELETE Remove a skill from a user's profile
+router.delete("/DeleteSkill/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { skill } = req.body;
+
+    // Validate input
+    if (!skill || typeof skill !== "string") {
+      return res
+        .status(400)
+        .json({ message: "Skill is required and must be a string." });
+    }
+
+    // Find the user
+    const user = await UsersCollection.findOne({ _id: new ObjectId(id) });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const existingSkills = user.skills || [];
+
+    // Ensure the skill exists
+    if (!existingSkills.includes(skill)) {
+      return res
+        .status(404)
+        .json({ message: "Skill not found in user's skill list." });
+    }
+
+    // Filter out the skill
+    const updatedSkills = existingSkills.filter((s) => s !== skill);
+
+    // Update the user document
+    await UsersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { skills: updatedSkills } }
+    );
+
+    res
+      .status(200)
+      .json({ message: "Skill removed successfully.", skills: updatedSkills });
+  } catch (err) {
+    console.error("DELETE /DeleteSkill/:id error:", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// DELETE Soft delete a user by ID
+router.delete("/SoftDelete/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    if (!ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Invalid user ID." });
+    }
+
+    const user = await UsersCollection.findOne({ _id: new ObjectId(userId) });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const fieldsToPreserve = ["_id", "email", "role"];
+    const fieldsToUnset = {};
+
+    Object.keys(user).forEach((key) => {
+      if (!fieldsToPreserve.includes(key)) {
+        fieldsToUnset[key] = "";
+      }
+    });
+
+    const updateOps = {
+      $unset: fieldsToUnset,
+      $set: {
+        deleteStatus: true,
+        deletedAt: new Date(),
+      },
+    };
+
+    await UsersCollection.updateOne({ _id: new ObjectId(userId) }, updateOps);
+
+    res.status(200).json({ message: "User soft-deleted successfully." });
+  } catch (error) {
+    console.error("DELETE /users/soft-delete/:id error:", error);
     res.status(500).json({ message: "Internal server error." });
   }
 });

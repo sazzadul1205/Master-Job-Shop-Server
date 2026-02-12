@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { client } = require("../config/db");
+const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
 const ChooseUsCollection = client
@@ -8,7 +8,7 @@ const ChooseUsCollection = client
   .collection("WhyChooseUs");
 
 // GET WhyChooseUs (optionally by id)
-app.get("/ChooseUs", async (req, res) => {
+router.get("/", async (req, res) => {
   const { id } = req.query;
 
   let query = {};
@@ -30,7 +30,7 @@ app.get("/ChooseUs", async (req, res) => {
 });
 
 // PUT (edit) a WhyChooseUs entry by ID
-app.put("/ChooseUs/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updatedData = req.body;
 

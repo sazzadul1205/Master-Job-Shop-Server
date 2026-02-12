@@ -1,43 +1,51 @@
 const express = require("express");
 const router = express.Router();
-const { client } = require("../config/db");
+const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
-const JobsCollection = client
-  .db("Master-Job-Shop")
-  .collection("Posted-Job");
+const JobsCollection = client.db("Master-Job-Shop").collection("Posted-Job");
 
 // GET: Fetch Posted Jobs
-app.get("/Jobs", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const { id, companyCode, email } = req.query;
+    const { id, jobIds, companyCode, postedBy } = req.query; // changed here
     const query = {};
 
-    // Filter by _id if provided
+    // Handle single job by id
     if (id) {
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ message: "Invalid job ID." });
       }
-      query._id = new ObjectId(id);
+      const job = await JobsCollection.findOne({ _id: new ObjectId(id) });
+      if (!job) {
+        return res.status(404).json({ message: "Job not found." });
+      }
+      return res.status(200).json(job);
     }
 
-    // Filter by companyCode if provided
+    // Handle multiple jobIds (as CSV string)
+    if (jobIds) {
+      let idsArray;
+      try {
+        idsArray = jobIds.split(",").map((id) => new ObjectId(id.trim()));
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid jobIds format." });
+      }
+
+      const jobs = await JobsCollection.find({
+        _id: { $in: idsArray },
+      }).toArray();
+      return res.status(200).json(jobs);
+    }
+
+    // Filter by companyCode
     if (companyCode) {
       query.companyCode = companyCode;
     }
 
-    // Filter by postedBy.email if provided
-    if (email) {
-      query["postedBy.email"] = email;
-    }
-
-    // Determine whether to fetch single or multiple results
-    if (id) {
-      const job = await JobsCollection.findOne(query);
-      if (!job) {
-        return res.status(404).json({ message: "Job not found." });
-      }
-      return res.status(200).json(job); // Return object directly
+    // Filter by postedBy (exact match)
+    if (postedBy) {
+      query.postedBy = postedBy;
     }
 
     const jobs = await JobsCollection.find(query).toArray();
@@ -47,10 +55,10 @@ app.get("/Jobs", async (req, res) => {
     }
 
     if (jobs.length === 1) {
-      return res.status(200).json(jobs[0]); // Return single object
+      return res.status(200).json(jobs[0]);
     }
 
-    res.status(200).json(jobs); // Return array of jobs
+    res.status(200).json(jobs);
   } catch (error) {
     console.error("Error fetching posted jobs:", error);
     res.status(500).json({ message: "An error occurred while fetching jobs." });
@@ -58,7 +66,7 @@ app.get("/Jobs", async (req, res) => {
 });
 
 // Total Posted Jobs Count API
-app.get("/JobsCount", async (req, res) => {
+router.get("/JobsCount", async (req, res) => {
   try {
     // Optional: extend this to filter by companyCode, email, etc.
     const count = await JobsCollection.countDocuments();
@@ -69,8 +77,252 @@ app.get("/JobsCount", async (req, res) => {
   }
 });
 
+// GET: Daily job post counts by postedBy
+router.get("/DailyJobPosted", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    const matchStage = postedBy ? { postedBy } : {};
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          postedAtDate: {
+            $convert: {
+              input: "$postedAt",
+              to: "date",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      {
+        $match: {
+          postedAtDate: { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$postedAtDate" } },
+          DocumentCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          postedDate: "$_id",
+          DocumentCount: 1,
+        },
+      },
+    ];
+
+    const results = await JobsCollection.aggregate(pipeline).toArray();
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: postedBy
+          ? "No jobs found for the given postedBy."
+          : "No jobs found.",
+      });
+    }
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error fetching daily job posts:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching daily job posts.",
+    });
+  }
+});
+
+// GET: Fetch Job IDs by postedBy email
+router.get("/Ids", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    if (!postedBy) {
+      return res
+        .status(400)
+        .json({ message: "postedBy query parameter is required." });
+    }
+
+    // Find all jobs posted by the given postedBy email
+    const jobs = await JobsCollection.find(
+      { postedBy },
+      { projection: { _id: 1 } }
+    ).toArray();
+
+    if (!jobs || jobs.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No jobs found for the given postedBy." });
+    }
+
+    // Extract just the _id values (convert ObjectId to string)
+    const ids = jobs.map((job) => job._id.toString());
+
+    return res.status(200).json(ids);
+  } catch (error) {
+    console.error("Error fetching job IDs by postedBy:", error);
+    return res
+      .status(500)
+      .json({ message: "An error occurred while fetching job IDs." });
+  }
+});
+
+// GET: Fetch Job Summaries by ID(s)
+router.get("/Summary", async (req, res) => {
+  try {
+    const { id, jobIds } = req.query;
+
+    // Handle single job by id
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid job ID." });
+      }
+
+      const job = await JobsCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { _id: 1, title: 1 } }
+      );
+
+      if (!job) {
+        return res.status(404).json({ message: "Job not found." });
+      }
+      return res.status(200).json(job);
+    }
+
+    // Handle multiple jobIds (CSV string)
+    if (jobIds) {
+      let idsArray;
+      try {
+        idsArray = jobIds.split(",").map((id) => new ObjectId(id.trim()));
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid jobIds format." });
+      }
+
+      const jobs = await JobsCollection.find(
+        { _id: { $in: idsArray } },
+        { projection: { _id: 1, title: 1 } }
+      ).toArray();
+
+      return res.status(200).json(jobs);
+    }
+
+    res
+      .status(400)
+      .json({ message: "Please provide either 'id' or 'jobIds'." });
+  } catch (error) {
+    console.error("Error fetching job summaries:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while fetching job summaries." });
+  }
+});
+
+// GET: Fetch jobs by IDs and sort by deadline proximity (expired first)
+router.get("/Deadline", async (req, res) => {
+  try {
+    const { jobIds, limit } = req.query; // Receive job IDs and optional limit from query
+
+    // If no job IDs provided, return bad request
+    if (!jobIds) {
+      return res.status(400).json({ message: "jobIds query is required." });
+    }
+
+    // Parse limit (default to 4 if not given)
+    const limitNumber = parseInt(limit, 10) || 4;
+
+    let idsArray;
+    try {
+      // Convert comma-separated job IDs into MongoDB ObjectIds
+      idsArray = jobIds.split(",").map((id) => new ObjectId(id.trim()));
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid jobIds format." });
+    }
+
+    // Fetch only the needed fields from DB
+    const jobs = await JobsCollection.find({
+      _id: { $in: idsArray },
+    })
+      .project({
+        _id: 1, // Keep ID
+        title: 1, // Keep title
+        "application.applicationDeadline": 1, // Keep deadline
+      })
+      .toArray();
+
+    // If no matching jobs, return 404
+    if (!jobs.length) {
+      return res.status(404).json({ message: "No jobs found." });
+    }
+
+    const now = new Date(); // Current time
+
+    // Process each job to calculate time left and expired status
+    const jobsWithDeadline = jobs.map((job) => {
+      const deadline = job.application?.applicationDeadline
+        ? new Date(job.application.applicationDeadline)
+        : null;
+
+      let expired = false;
+      let timeLeftText;
+
+      if (deadline) {
+        const diffMs = deadline - now; // Time difference in milliseconds
+        const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24)); // Whole days left
+        const hoursLeft = Math.floor(
+          (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60) // Remaining hours after days
+        );
+
+        if (diffMs <= 0) {
+          // Past deadline
+          expired = true;
+          timeLeftText = "Expired";
+        } else {
+          // Format like "3 days 5 hours"
+          timeLeftText = `${daysLeft} day${
+            daysLeft !== 1 ? "s" : ""
+          } ${hoursLeft} hour${hoursLeft !== 1 ? "s" : ""}`;
+        }
+      } else {
+        timeLeftText = "No deadline"; // Missing deadline
+      }
+
+      return {
+        _id: job._id,
+        title: job.title,
+        applicationDeadline: deadline ? deadline.toISOString() : null,
+        timeLeft: timeLeftText,
+        expired,
+      };
+    });
+
+    // Sort jobs: expired first (earliest expired first), then soonest deadline
+    jobsWithDeadline.sort((a, b) => {
+      if (a.expired && b.expired) {
+        return (
+          new Date(a.applicationDeadline) - new Date(b.applicationDeadline)
+        );
+      }
+      if (a.expired && !b.expired) return -1;
+      if (!a.expired && b.expired) return 1;
+      return new Date(a.applicationDeadline) - new Date(b.applicationDeadline);
+    });
+
+    // Send only the number of jobs requested (default 4)
+    res.status(200).json(jobsWithDeadline.slice(0, limitNumber));
+  } catch (error) {
+    console.error("Error fetching jobs by deadline:", error);
+    res.status(500).json({ message: "An error occurred while fetching jobs." });
+  }
+});
+
 // Apply for a Posted Job (update PeopleApplied array)
-app.post("/Jobs/Apply/:id", async (req, res) => {
+router.post("/Apply/:id", async (req, res) => {
   const { id } = req.params;
   const applicantData = req.body;
 
@@ -116,7 +368,7 @@ app.post("/Jobs/Apply/:id", async (req, res) => {
 });
 
 // POST: Create a new posted job
-app.post("/Jobs", async (req, res) => {
+router.post("/", async (req, res) => {
   const jobData = req.body;
 
   // Basic validation
@@ -152,7 +404,7 @@ app.post("/Jobs", async (req, res) => {
 });
 
 // Approve Posted Job by ID
-app.patch("/Jobs/Approve/:id", async (req, res) => {
+router.patch("/Approve/:id", async (req, res) => {
   const jobId = req.params.id;
 
   // Validate ObjectId format
@@ -188,7 +440,7 @@ app.patch("/Jobs/Approve/:id", async (req, res) => {
 });
 
 // Update Posted Job by ID
-app.put("/Jobs/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updatedData = req.body;
 
@@ -229,7 +481,7 @@ app.put("/Jobs/:id", async (req, res) => {
 });
 
 // Delete a single applicant from PeopleApplied by job ID and applicant email
-app.delete("/Jobs/Applicant/:id/", async (req, res) => {
+router.delete("/Applicant/:id/", async (req, res) => {
   const jobId = req.params.id;
   const { email } = req.body;
 
@@ -266,7 +518,7 @@ app.delete("/Jobs/Applicant/:id/", async (req, res) => {
 });
 
 // Delete a single Posted Job by ID
-app.delete("/Jobs/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const jobId = req.params.id;
 
   // Validate ID

@@ -1,51 +1,67 @@
 const express = require("express");
 const router = express.Router();
-const { client } = require("../config/db");
+const { client } = require("../../config/db");
 const { ObjectId } = require("mongodb");
 
-const EventsCollection = client
-  .db("Master-Job-Shop")
-  .collection("Upcoming-Events");
+const EventsCollection = client.db("Master-Job-Shop").collection("Events");
 
 // Get Events
-app.get("/Events", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const { id, postedBy } = req.query;
+    const { id, postedBy, eventIds } = req.query;
     let query = {};
 
-    // If ID is provided, validate and search by ObjectId
+    // Single Event ID
     if (id) {
       if (!ObjectId.isValid(id)) {
-        return res.status(400).send({ message: "Invalid ID format." });
+        return res.status(400).json({ message: "Invalid ID format." });
       }
       query._id = new ObjectId(id);
     }
 
-    // If postedBy (email) is provided
+    // Multiple Event IDs (comma-separated)
+    if (eventIds) {
+      try {
+        const idsArray = eventIds.split(",").map((singleId) => {
+          const trimmed = singleId.trim();
+          if (!ObjectId.isValid(trimmed)) throw new Error();
+          return new ObjectId(trimmed);
+        });
+        query._id = { $in: idsArray };
+      } catch (err) {
+        return res.status(400).json({
+          message:
+            "Invalid eventIds format. Must be a comma-separated list of valid ObjectIds.",
+        });
+      }
+    }
+
+    // Filter by postedBy email
     if (postedBy) {
       query.postedBy = postedBy;
     }
 
     const result = await EventsCollection.find(query).toArray();
 
-    if (result.length === 0) {
-      return res.status(404).send({ message: "No matching event(s) found." });
+    if (!result || result.length === 0) {
+      return res.status(404).json({ message: "No events found." });
     }
 
-    // If only one document is found, send it as an object
+    // Return single object if only one match
     if (result.length === 1) {
-      res.send(result[0]);
-    } else {
-      res.send(result);
+      return res.status(200).json(result[0]);
     }
+
+    // Return full list
+    res.status(200).json(result);
   } catch (error) {
-    console.error("Error fetching upcoming events:", error);
-    res.status(500).send({ message: "Internal Server Error", error });
+    console.error("Error fetching events:", error);
+    res.status(500).json({ message: "Internal Server Error", error });
   }
 });
 
 // Get Total Count of Events
-app.get("/EventsCount", async (req, res) => {
+router.get("/EventsCount", async (req, res) => {
   try {
     const count = await EventsCollection.estimatedDocumentCount();
     res.status(200).json({ count });
@@ -57,8 +73,247 @@ app.get("/EventsCount", async (req, res) => {
   }
 });
 
+// GET: Daily Event post counts by postedBy email or all if none provided
+router.get("/DailyEventsPosted", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    const matchStage = postedBy ? { postedBy } : {};
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $addFields: {
+          publishedAtDate: {
+            $convert: {
+              input: "$publishedAt",
+              to: "date",
+              onError: null,
+              onNull: null,
+            },
+          },
+        },
+      },
+      { $match: { publishedAtDate: { $ne: null } } },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$publishedAtDate" },
+          },
+          DocumentCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          postedDate: "$_id",
+          DocumentCount: 1,
+        },
+      },
+    ];
+
+    const results = await EventsCollection.aggregate(pipeline).toArray();
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        message: postedBy
+          ? "No events found for the given postedBy."
+          : "No events found.",
+      });
+    }
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Error fetching daily event posts:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching daily event posts.",
+      error: error.message,
+    });
+  }
+});
+
+// GET: Fetch only Event IDs by postedBy email
+router.get("/Ids", async (req, res) => {
+  try {
+    const { postedBy } = req.query;
+
+    if (!postedBy) {
+      return res
+        .status(400)
+        .json({ message: "postedBy query parameter is required." });
+    }
+
+    // Find events where postedBy matches the email, return only _id
+    const events = await EventsCollection.find(
+      { postedBy: postedBy },
+      { projection: { _id: 1 } }
+    ).toArray();
+
+    if (!events.length) {
+      return res
+        .status(404)
+        .json({ message: "No events found for the given postedBy." });
+    }
+
+    // Map to string IDs
+    const ids = events.map((event) => event._id.toString());
+
+    res.status(200).json(ids);
+  } catch (error) {
+    console.error("Error fetching event IDs:", error);
+    res.status(500).json({ message: "Error fetching event IDs" });
+  }
+});
+
+// GET: Fetch Event Summaries by ID(s)
+router.get("/Summary", async (req, res) => {
+  try {
+    const { id, eventIds } = req.query;
+
+    // Handle single event by id
+    if (id) {
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid event ID." });
+      }
+
+      const event = await EventsCollection.findOne(
+        { _id: new ObjectId(id) },
+        { projection: { _id: 1, title: 1 } }
+      );
+
+      if (!event) {
+        return res.status(404).json({ message: "Event not found." });
+      }
+      return res.status(200).json(event);
+    }
+
+    // Handle multiple eventIds (CSV string)
+    if (eventIds) {
+      let idsArray;
+      try {
+        idsArray = eventIds.split(",").map((id) => new ObjectId(id.trim()));
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid eventIds format." });
+      }
+
+      const events = await EventsCollection.find(
+        { _id: { $in: idsArray } },
+        { projection: { _id: 1, title: 1 } }
+      ).toArray();
+
+      return res.status(200).json(events);
+    }
+
+    res
+      .status(400)
+      .json({ message: "Please provide either 'id' or 'eventIds'." });
+  } catch (error) {
+    console.error("Error fetching event summaries:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while fetching event summaries." });
+  }
+});
+
+// GET: Fetch events by IDs and sort by registration deadline proximity (expired first)
+router.get("/Deadline", async (req, res) => {
+  try {
+    const { eventIds, limit } = req.query; // Receive event IDs and optional limit from query
+
+    if (!eventIds) {
+      return res.status(400).json({ message: "eventIds query is required." });
+    }
+
+    // Parse limit (default to 4 if not given)
+    const limitNumber = parseInt(limit, 10) || 4;
+
+    let idsArray;
+    try {
+      idsArray = eventIds.split(",").map((id) => new ObjectId(id.trim()));
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid eventIds format." });
+    }
+
+    // Fetch events
+    const events = await EventsCollection.find({
+      _id: { $in: idsArray },
+    })
+      .project({
+        _id: 1,
+        title: 1,
+        "registration.closeDate": 1, // only keep deadline
+      })
+      .toArray();
+
+    if (!events.length) {
+      return res.status(404).json({ message: "No events found." });
+    }
+
+    const now = new Date();
+
+    // Process each event
+    const processedEvents = events.map((event) => {
+      const deadline = event.registration?.closeDate
+        ? new Date(event.registration.closeDate)
+        : null;
+
+      let expired = false;
+      let timeLeftText;
+
+      if (deadline) {
+        const diffMs = deadline - now;
+        const daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hoursLeft = Math.floor(
+          (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+        );
+
+        if (diffMs <= 0) {
+          expired = true;
+          timeLeftText = "Expired";
+        } else {
+          timeLeftText = `${daysLeft} day${
+            daysLeft !== 1 ? "s" : ""
+          } ${hoursLeft} hour${hoursLeft !== 1 ? "s" : ""}`;
+        }
+      } else {
+        timeLeftText = "No deadline";
+      }
+
+      return {
+        _id: event._id,
+        title: event.title,
+        registrationDeadline: deadline ? deadline.toISOString() : null,
+        timeLeft: timeLeftText,
+        expired,
+      };
+    });
+
+    // Sort by expired first, then nearest deadline
+    processedEvents.sort((a, b) => {
+      if (a.expired && b.expired) {
+        return (
+          new Date(a.registrationDeadline) - new Date(b.registrationDeadline)
+        );
+      }
+      if (a.expired && !b.expired) return -1;
+      if (!a.expired && b.expired) return 1;
+      return (
+        new Date(a.registrationDeadline) - new Date(b.registrationDeadline)
+      );
+    });
+
+    res.status(200).json(processedEvents.slice(0, limitNumber));
+  } catch (error) {
+    console.error("Error fetching events by deadline:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while fetching events." });
+  }
+});
+
 // Apply for an Upcoming Event
-app.post("/Events/Apply/:id", async (req, res) => {
+router.post("/Apply/:id", async (req, res) => {
   const id = req.params.id;
   const applicantData = req.body;
 
@@ -96,7 +351,7 @@ app.post("/Events/Apply/:id", async (req, res) => {
 });
 
 // Post a new Upcoming Event
-app.post("/Events", async (req, res) => {
+router.post("/", async (req, res) => {
   const eventData = req.body;
 
   if (!eventData || typeof eventData !== "object") {
@@ -116,7 +371,7 @@ app.post("/Events", async (req, res) => {
 });
 
 // Update an Upcoming Event by ID
-app.put("/Events/:id", async (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = req.params.id;
   const updateData = req.body;
 
@@ -146,7 +401,7 @@ app.put("/Events/:id", async (req, res) => {
 });
 
 // Update a Participant's State by applicantEmail
-app.put("/Events/:eventId/Participants/:applicantEmail", async (req, res) => {
+router.put("/:eventId/Participants/:applicantEmail", async (req, res) => {
   const { eventId, applicantEmail } = req.params;
   const { applicantState } = req.body;
 
@@ -197,7 +452,7 @@ app.put("/Events/:eventId/Participants/:applicantEmail", async (req, res) => {
 });
 
 // Delete an Upcoming Event by ID
-app.delete("/Events/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -221,41 +476,38 @@ app.delete("/Events/:id", async (req, res) => {
 });
 
 // Delete a Participant by applicantEmail
-app.delete(
-  "/Events/:eventId/Participants/:applicantEmail",
-  async (req, res) => {
-    const { eventId, applicantEmail } = req.params;
+router.delete("/:eventId/Participants/:applicantEmail", async (req, res) => {
+  const { eventId, applicantEmail } = req.params;
 
-    if (!ObjectId.isValid(eventId)) {
-      return res.status(400).send({ message: "Invalid event ID format." });
-    }
-
-    if (!applicantEmail || typeof applicantEmail !== "string") {
-      return res
-        .status(400)
-        .send({ message: "Invalid or missing applicant email." });
-    }
-
-    const query = { _id: new ObjectId(eventId) };
-    const update = {
-      $pull: {
-        ParticipantApplications: { applicantEmail },
-      },
-    };
-
-    try {
-      const result = await EventsCollection.updateOne(query, update);
-
-      if (result.modifiedCount > 0) {
-        res.status(200).send({ message: "Participant deleted successfully!" });
-      } else {
-        res.status(404).send({ message: "Event or participant not found." });
-      }
-    } catch (error) {
-      console.error("Error deleting participant:", error);
-      res.status(500).send({ message: "Error deleting participant", error });
-    }
+  if (!ObjectId.isValid(eventId)) {
+    return res.status(400).send({ message: "Invalid event ID format." });
   }
-);
+
+  if (!applicantEmail || typeof applicantEmail !== "string") {
+    return res
+      .status(400)
+      .send({ message: "Invalid or missing applicant email." });
+  }
+
+  const query = { _id: new ObjectId(eventId) };
+  const update = {
+    $pull: {
+      ParticipantApplications: { applicantEmail },
+    },
+  };
+
+  try {
+    const result = await EventsCollection.updateOne(query, update);
+
+    if (result.modifiedCount > 0) {
+      res.status(200).send({ message: "Participant deleted successfully!" });
+    } else {
+      res.status(404).send({ message: "Event or participant not found." });
+    }
+  } catch (error) {
+    console.error("Error deleting participant:", error);
+    res.status(500).send({ message: "Error deleting participant", error });
+  }
+});
 
 module.exports = router;
